@@ -5,9 +5,39 @@
 
 int main(int argc, char ** argv)
 {
-	int b = 128;
-	int M = b * 11;  // so we have space for 11 items
+  int c;
+  int b = 128;
+  int M = b * 4096;  // so we have space for 512kB
+  int x = 0, y = 0, z = 0;
+  while((c = getopt(argc, argv, "b:s:")) != -1 ){
+        switch(c){
+        case 'b':{
+           std::stringstream ss1(optarg);
+           int i;
+           if( ss1 >> i )
+              b = i;
+           else
+              std::cout << "error";
+           }
+           break;
+        case 's':{
+            std::stringstream ss2(optarg);
+            int i;
+            if( ss2 >> i ){
+                   M = i;
+                   std::cout << M << std::endl;}
+            else
+                std::cout << "error";
+ //           M = atoi(*optarg);
+        }
+            break;
+        default:
+            break;
+      }
+    }
 
+    	printf("b is %d\n", b);
+    	printf("M is %d\n", M);
 	char buf [1024];
 	memset (buf, 1, 1024);		// set each byte to 1
 
