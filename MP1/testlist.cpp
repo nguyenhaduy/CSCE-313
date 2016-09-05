@@ -6,15 +6,6 @@
 
 int main(int argc, char *argv[])
 {
-	int c;
-	int x = 0, y = 0, z = 0;
-	c = getopt(argc, argv, "b:s:");
-	// printf("ARG: %d\n", c);
-	// printf("%d\n", argc);
-	if (argc > 1) {
-		printf("Flag is %c and argument is %s\n", optopt, optarg);
-		printf("Size of %s is %lu\n", optarg, sizeof(optarg));
-	}
 	char *b = optarg;
 	int M = (int)(*b) * 12;  // so we have space for 12 items
 	// // their getopt() code, keep intact
