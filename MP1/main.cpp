@@ -55,6 +55,7 @@ int main(int argc, char ** argv)
   {
     Insert (testnums [i], buf, 50);   // insert 50 bytes from the buffer as value for each of the insertions
   }
+  std::cout << "Inserting "
   Insert (150, buf, 200); // this Insert should fail
   PrintList ();
   Delete (7);

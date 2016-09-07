@@ -1,5 +1,5 @@
-#ifndef _linked_list_h_                   // check if the Header is already define
-#define _linked_list_h_
+#ifndef _linked_list_hpp_                   // check if the Header is already define
+#define _linked_list_hpp_
 
 //The node of linked list
 struct node {

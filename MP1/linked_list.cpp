@@ -82,7 +82,6 @@ int Delete (int key) {
 
 char* Lookup (int key) {
     node* curr_node = head_pointer;
-
     for (int i = 0; i < number_of_nodes; ++i) {
         if (curr_node->key == key) {
             char* location = (char*) curr_node + sizeof(node*);
