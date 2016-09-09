@@ -53,16 +53,24 @@ int main(int argc, char ** argv)
   // some sample insertions
   for (i = 0; i < 10; i ++)
   {
-    Insert (testnums [i], buf, 50);   // insert 50 bytes from the buffer as value for each of the insertions
+    std::cout << "Inserting data with key " << i << std::endl;
+    Insert (testnums [i], buf, 50);
+    PrintList();   // insert 50 bytes from the buffer as value for each of the insertions
   }
-  std::cout << "Inserting "
+  std::cout << "Try inserting biger data than value length\n";
   Insert (150, buf, 200); // this Insert should fail
   PrintList ();
+  Delete (200);
   Delete (7);
-  Insert (13, msg, strlen(msg) + 1);    // insertion of strings, copies the null byte at the end
-  Delete (55);
-  Insert (15, "test msg", 8);
-  Delete (3);
+  PrintList ();
+  Insert (13, msg, strlen(msg)+1);    // insertion of strings, copies the null byte at the end
+  Delete (100);
+  Delete (300);
+  PrintList ();
+  Insert (500, buf, 50);
+  
+  PrintList ();
+  Insert (600, buf, 50);
   PrintList ();
 
   // a sample lookup operations that should return null, because it is looking up a non-existent number
