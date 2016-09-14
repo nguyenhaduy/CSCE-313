@@ -1,4 +1,4 @@
-/* 
+/*
     File: my_allocator.c
 
     Author: <your name>
@@ -6,7 +6,7 @@
             Texas A&M University
     Date  : <date>
 
-    Modified: 
+    Modified:
 
     This file contains the implementation of the module "MY_ALLOCATOR".
 
@@ -26,7 +26,7 @@
 #include "my_allocator.h"
 
 /*--------------------------------------------------------------------------*/
-/* DATA STRUCTURES */ 
+/* DATA STRUCTURES */
 /*--------------------------------------------------------------------------*/
 
     /* -- (none) -- */
@@ -51,8 +51,8 @@
 
 
 extern Addr my_malloc(unsigned int _length) {
-  /* This preliminary implementation simply hands the call over the 
-     the C standard library! 
+  /* This preliminary implementation simply hands the call over the
+     the C standard library!
      Of course this needs to be replaced by your implementation.
   */
   return malloc((size_t)_length);
