@@ -1,10 +1,10 @@
 /*
     File: my_allocator.c
 
-    Author: <your name>
+    Author: Duy Nguyen
             Department of Computer Science
             Texas A&M University
-    Date  : <date>
+    Date  : Sep 13th 2016
 
     Modified:
 
@@ -22,7 +22,10 @@
 /* INCLUDES */
 /*--------------------------------------------------------------------------*/
 
-#include<stdlib.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 #include "my_allocator.h"
 
 /*--------------------------------------------------------------------------*/
@@ -35,7 +38,10 @@
 /* CONSTANTS */
 /*--------------------------------------------------------------------------*/
 
-    /* -- (none) -- */
+    Header** LIST_PTR;
+    double LIST_SIZE;//double for rounding up
+    double BASE;//must be double for correct division
+    uintptr_t MEM_BEGIN;//pointer to beginning of memory block for bit calculations
 
 /*--------------------------------------------------------------------------*/
 /* FORWARDS */
@@ -64,3 +70,6 @@ extern int my_free(Addr _a) {
   return 0;
 }
 
+int release_allocator(){
+
+}
