@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <string.h>
+#include <sstream>
+#include <iostream>
 #include "my_allocator.h"
 #include "ackerman.h"
 
@@ -12,11 +15,11 @@
 Default is 512kB.
 */
 void show_help(){
-        cout <<"usage is as follows\n"
-        	 <<"memtest [-b <blocksize>] [-s <memsize>]\n"
-        	 <<"-b <blocksize> defines the block size, in bytes. Default is 128 bytes.\n"
-        	 <<"-s <memsize> defines the size of the memory to be allocated, in bytes.\n"
-        	 <<"Default is 512kB.\n\n";
+        std::cout <<"usage is as follows\n"
+        	 	  <<"memtest [-b <blocksize>] [-s <memsize>]\n"
+        	 	  <<"-b <blocksize> defines the block size, in bytes. Default is 128 bytes.\n"
+        	 	  <<"-s <memsize> defines the size of the memory to be allocated, in bytes.\n"
+        	 	  <<"Default is 512kB.\n\n";
 }
 
 int main(int argc, char ** argv) {
@@ -69,7 +72,7 @@ int main(int argc, char ** argv) {
 	}
 	
 	// init_allocator(basic block size, memory length)
-	init_allocator(b,m);
+	// init_allocator(b,M);
 	ackerman_main();
 
 	// release_allocator()

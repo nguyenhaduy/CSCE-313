@@ -28,6 +28,14 @@
 /* DATA STRUCTURES */ 
 /*--------------------------------------------------------------------------*/
 
+// typedef struct Header Header;
+
+struct Header{
+    char check; //use for validation and determine if free
+    int size;
+    Header* buddy_ptr;
+};
+	
 typedef void * Addr; 
 
 /*--------------------------------------------------------------------------*/
