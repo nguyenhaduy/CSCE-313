@@ -33,16 +33,22 @@
 /* DATA STRUCTURES */
 /*--------------------------------------------------------------------------*/
 
-    /* -- (none) -- */
+    Addr** FREE_LIST;
 
 /*--------------------------------------------------------------------------*/
 /* CONSTANTS */
 /*--------------------------------------------------------------------------*/
 
-    Header** LIST_PTR;
-    int LIST_SIZE;
-    int BASE;
-    uintptr_t MEM_BEGIN;//pointer to beginning of memory block for bit calculations
+    int NUM_LISTS;
+    Addr START_MEMORY;
+    Addr END_MEMORY;
+    const unsigned int HEADER_SIZE = 13;
+    unsigned int MEMORY_LENGTH;
+    unsigned int BASIC_BLOCK_SIZE;
+    // Header** LIST_PTR;
+    // int LIST_SIZE;
+    // int BASE;
+    // uintptr_t MEM_BEGIN;//pointer to beginning of memory block for bit calculations
 
 /*--------------------------------------------------------------------------*/
 /* FORWARDS */
@@ -74,51 +80,112 @@ void check_header(){
 
 }
 
+int getList(Addr _a) {
+  Header *a = (Header*)_a;
+  
+  int i = NUM_LISTS, j = a->size + HEADER_SIZE;
+  while (j != MEMORY_LENGTH/(int)pow(2,i)) {
+    i --;
+    if (i < 0) {
+      printf("ERROR: GETLIST FAILED ON %i!",a->size + HEADER_SIZE);
+      exit(EXIT_FAILURE);
+    }
+  }
+  
+  return NUM_LISTS-i-1;
+}
+
+extern void print() {
+  int i, j;
+  Header *h = NULL;
+  
+  printf("FREE_LIST:\n");
+  for (i = 0; i < NUM_LISTS; ++i) {
+  
+    printf("%i: ",i);
+    for (j = 0; j < 2; ++j) {
+      if (FREE_LIST[i][j] == NULL) {
+        printf("[ ]");
+      } else {
+        h = (Header*)FREE_LIST[i][j];
+        printf("[%i]",h->size + HEADER_SIZE);
+      }
+    }
+    
+    printf("\n");
+  }
+  
+  printf("MEMORY: \n");
+  h = (Header*)START_MEMORY;
+  
+  int oC = 0;
+  while(h != NULL && oC < 100) {
+    printf("[");
+    if (h->prev != NULL) printf("%i<-", h->prev->size + HEADER_SIZE);
+    printf("(%i,%i)",h->size + HEADER_SIZE, h->empty);
+    if (h->next != NULL) printf("->%i", h->next->size + HEADER_SIZE);
+    printf("]\t");
+    
+    h = h->next;
+    oC ++;
+  }
+  printf("\n\n\n");
+}
+
 /* Don't forget to implement "init_allocator" and "release_allocator"! */
 
 extern unsigned int init_allocator(unsigned int _basic_block_size, unsigned int _length){ 
-  BASE = _basic_block_size;//for simplified use in other function
-  unsigned int remainder = _length % BASE;
-  unsigned int total = _length - remainder; //take away memory that will not fit into multiple of basic block size
-  if (remainder != 0)
-      total = total + BASE; //increment to allocate an extra block for the left over bytes
-  _length = total;
-  LIST_SIZE = round(log2(total) - log2(BASE) +.5); //determine number of lists add .5 to always round up
-  //LIST_SIZE = round(LIST_SIZE+.5);//add .5 to always round up
-  Header** free_list = (Header**)malloc(2 * LIST_SIZE * sizeof(Header*)); //free list array
-
-  free_list[0] = (Header*)malloc(total); //tell os to get continuous chunk of memory and store on free_list
-  MEM_BEGIN = (uintptr_t)free_list[0];
-  for (int i = 1; i<LIST_SIZE*2; ++i){
-    free_list[i] = NULL; //initalize pointers to Null
-  }
-  Header* ptr = free_list[0]; //set pointer that will be used to create headers to beginning of list
-  Header tmp_head;
-  tmp_head.check = '~';
-  tmp_head.next = NULL;
-  // printf("%f list size for the memory\n",list_size);
+  // determine sizes to be used
+  // HEADER_SIZE = 13;
+  MEMORY_LENGTH = _length;
+  BASIC_BLOCK_SIZE = _basic_block_size;
+  NUM_LISTS = log2(MEMORY_LENGTH / BASIC_BLOCK_SIZE) + 1;
+    
+  // create the memory
+  START_MEMORY = malloc(MEMORY_LENGTH);
+  // END_MEMORY = START_MEMORY - MEMORY_LENGTH;
   
-  for (int i = 0; i<LIST_SIZE*2; i+=2) {
-    tmp_head.size = (BASE * pow(2,(LIST_SIZE - ((i+2)/2))));
-    //   printf("\n%d working iteration %d  power is %d\n",total, i/2,power(2,(list_size-(((i+2)/2)))));
-    if (total >= (BASE * pow(2,(LIST_SIZE - (((i+2)/2)))))) {//so that the first pointer only gets initialized once
-      free_list[i] = ptr; //else ptr is equal to null
-	}
-    while (total >= (BASE * pow(2,(LIST_SIZE - (((i+2)/2)))))) {
-      ptr[0] = tmp_head;
-      ptr->next = &ptr[(int)((BASE * pow(2,(LIST_SIZE - (((i+2)/2)))))/sizeof(Header))];
-      ptr = ptr->next;
-      total = total - BASE * pow(2,(LIST_SIZE - (((i+2)/2))));
-      //     printf("total mem unallocated %d\n",total);
-      if (ptr->size == free_list[i]->size)
-        free_list[i+1] = ptr;
-      else
-        free_list[i+1] = free_list[i];
-      }
-  }
-  LIST_PTR = free_list;
+  // create the freelist
+  // 1. malloc the first dimension
+  FREE_LIST = (Addr**)malloc(NUM_LISTS * sizeof(Addr*));
 
-  return  _length; //if successful return amount of memory made available
+  // printf("check\n");
+
+  // 2. malloc each row in the freelist
+  for (int i = 0; i < NUM_LISTS; ++i) {
+    FREE_LIST[i] = (Addr*)malloc(sizeof(Addr));
+    // printf("check0\n");
+    // for (int j = 0; j < i^2; ++j){
+    //   FREE_LIST[i][j] = NULL; //start node
+    // }
+  }
+
+  // printf("check2\n");
+  
+  // // 3. set FREE_LIST entries to NULL
+  for (int i = 0; i < NUM_LISTS; ++i){
+    for (int j = 0; j < 2; ++j) {
+      // printf("check0 i = %d ; j = %d \n",i,j);
+      FREE_LIST[i][j] = NULL; //start node
+      // FREE_LIST[i][1] = NULL; //end node
+    }
+  }
+  // printf("check2\n");
+  
+  // create the first Header
+  Header* temp_header = (Header*)START_MEMORY;
+    temp_header->empty = 1;
+    temp_header->next = NULL;
+    temp_header->prev = NULL;
+    temp_header->size = (MEMORY_LENGTH - HEADER_SIZE);
+  
+  // store it in the first freelist to initialized the first free block
+  FREE_LIST[0][0] = temp_header;  
+
+  printf("\nSuccessfully Initialized Memory!!!\n");
+    
+  // return bytes available
+  return temp_header->size;
 }
 
 extern Addr my_malloc(unsigned int _length) {
@@ -126,58 +193,156 @@ extern Addr my_malloc(unsigned int _length) {
      the C standard library!
      Of course this needs to be replaced by your implementation.
   */
-  
-  return malloc((size_t)_length);
+  Header* temp_header = NULL;
+  Header* to_use = NULL;
+  Header* tNext = NULL;
+    
+  printf("\n\n Memory Allocating: [%i]\n\n",_length);
+    
+  int i_f, j_f;
+  for (int i = 0; i < NUM_LISTS; ++i) {
+    for (int j = 0; j < 2; ++j) { 
+      if (FREE_LIST[i][j] != NULL) {
+        // get the temp header
+        temp_header = (Header*)FREE_LIST[i][j];
+        
+        // if it fits, set touse
+        if (temp_header->size >= _length) {
+          to_use = (Header*)FREE_LIST[i][j];
+          i_f = i;
+          j_f = j;
+          break;
+        }
+      }
+    }
+  }
+      
+  // if we got a size that fits
+  if (to_use != NULL) {
+    int sizeAfterSplit;
+    sizeAfterSplit = (to_use->size + HEADER_SIZE) / 2 - HEADER_SIZE;
+    
+    // if the very first block, or otherwise splittable [ ][x] - -fixed!
+    if (1==1) {
+      while (sizeAfterSplit >= _length && i_f > 0) {
+        // update sizeAfterSplit
+        sizeAfterSplit = (to_use->size + HEADER_SIZE) / 2 - HEADER_SIZE;
+        
+        printf("Split %i Into\t",to_use->size + HEADER_SIZE);
+        
+        // update the first header
+        to_use->size = sizeAfterSplit;
+        to_use->empty = 1;
+        
+        printf("[%i][%i]\n",sizeAfterSplit + HEADER_SIZE,sizeAfterSplit + HEADER_SIZE);
+        
+        // create a new header at halfway of touse
+        Header *hNew = (Header*)(((void*)to_use) + (to_use->size));
+        
+        // set the data for the new header
+        hNew->empty = 1;
+        hNew->size = sizeAfterSplit;
+        
+        // point them at each other
+        tNext = to_use->next;
+        to_use->next = hNew;
+        hNew->prev = to_use;
+        hNew->next = tNext;
+      
+        // update the FREE_LIST
+        // 1. remove the old one
+        FREE_LIST[i_f][j_f] = NULL;
+        
+        // 2. add the new Headers
+        i_f --;
+        if (j_f < 1) j_f ++;
+        FREE_LIST[i_f][0] = to_use;
+        FREE_LIST[i_f][1] = hNew;
+                          
+        to_use = hNew;
+      }
+    }
+    
+    // allocate now
+    to_use->empty  = 0;
+    FREE_LIST[i_f][j_f] = NULL;
+    
+    print();
+    
+    return (Addr)to_use;
+    
+  } else {
+    printf("ERROR: OUT OF MEMORY!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // return malloc((size_t)_length);
 }
 
 extern int my_free(Addr _a) {
   /* Same here! */
-  Header* my_addr=(Header*)_a;
-  int* eraser;
-  eraser=(int*)my_addr;//pointer to erase memory
-  //printf("freeing block! size\n");
-  my_addr=&my_addr[-1]; //shift pointer from used mem to header
-  //int sz=my_addr->size;
-  //printf(" %d\n",sz);
-  if (check_header(my_addr)==1)
-    printf("my_free error block already free!\n");
-  if (check_header(my_addr)==-1)
-    printf("my_free error not a header!\n");
-  my_addr->symbol='~';//set symbol to free
-  block_join(my_addr);
-  int i=0;
-  while((my_addr->size-sizeof(Header))>(i*sizeof(int)))
-  {
-    eraser[i]&=0;
-    ++i;
+  Header *temp_header = (Header*)_a;
+  Header *o;
+  int l = getList(temp_header);
+   
+  temp_header->empty = 1;
+    
+  if (FREE_LIST[l][0] == NULL) {
+    FREE_LIST[l][0] = temp_header;
+    printf("my_free(%i) at [%i][%i]\t",temp_header->size + HEADER_SIZE,l,0);
+  } else if (FREE_LIST[l][1] == NULL) {
+    FREE_LIST[l][1] = temp_header;
+    printf("my_free(%i) at [%i][%i]\t",temp_header->size + HEADER_SIZE,l,1);
   }
-  i=0;
-
-  while (my_addr->size>(base*power(2,i))) //find index
-    ++i;
-  i=list_size-1-i;//inverse index to access list
-
-  if (list_ptr[i*2]==NULL) //add to list
-  {
-    list_ptr[i*2]=my_addr;
-    list_ptr[i*2+1]=my_addr;
-  }
-  else
-  {
-    my_addr->next=list_ptr[i*2];
-    list_ptr[i*2]=my_addr;
-  }
-
-  free(_a);
-  return 0;
+      
+  if (temp_header->next != NULL) {
+    o = temp_header->next;
+      
+      // [_a][o]
+      if (o->empty == 1 && o->size == temp_header->size) {
+        
+        temp_header->size = (temp_header->size + HEADER_SIZE)*2 - HEADER_SIZE;
+        temp_header->next = o->next;
+        if (o->next != NULL) o->next->prev = temp_header;
+        temp_header->empty = 1;
+        
+        FREE_LIST[l][0] = NULL;
+        FREE_LIST[l][1] = NULL;
+        
+        FREE_LIST[l+1][1] = temp_header;
+        printf("coalesce with (%i) (case [_a][o]) to [%i][%i]\n",temp_header->size + HEADER_SIZE,l+1,1);
+        my_free((Addr*)temp_header);
+      }
+    }
+    
+    if (temp_header->prev != NULL) {
+      o = temp_header->prev;
+      
+      // [o][_a]
+      if (o->empty == 1 && o->size == temp_header->size) {
+        
+        o->size = (temp_header->size + HEADER_SIZE)*2 - HEADER_SIZE;
+        o->next = temp_header->next;
+        if (temp_header->next != NULL) temp_header->next->prev = o;
+        o->empty = 1;
+        
+        FREE_LIST[l][0] = NULL;
+        FREE_LIST[l][1] = NULL;
+        
+        FREE_LIST[l+1][1] = o;
+        printf("coalesce with (%i) (case [o][_a]) to [%i][%i]\n",temp_header->size + HEADER_SIZE,l+1,1);
+        my_free((Addr*)o);
+      }
+    }   
+    
+    printf("just set to 1\n");
 }
 
 int release_allocator(){
   /* This function returns any allocated memory to the operating system.
        After this function is called, any allocation fails.
     */
-  free((Addr)LIST_PTR);
-  free((Addr)MEM_BEGIN);
+  free(START_MEMORY);
   printf("Successfully Deallocated Memory\n");
   return 0;
 }

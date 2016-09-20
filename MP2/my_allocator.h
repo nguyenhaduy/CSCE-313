@@ -28,12 +28,13 @@
 /* DATA STRUCTURES */ 
 /*--------------------------------------------------------------------------*/
 
-// typedef struct Header Header;
+typedef struct Header Header;
 
-struct Header{
-    char check; //use for validation and determine if free
-    int size;
-    Header* buddy_ptr;
+struct Header {
+  bool empty;     // 1 byte
+  Header* next;   // 4 bytes
+  Header* prev;   // 4 bytes
+  unsigned int size;  // 4 bytes    13 total
 };
 	
 typedef void * Addr; 

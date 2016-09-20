@@ -28,7 +28,7 @@ int main(int argc, char ** argv) {
 	// Parse arguments using getopt()
 	int c;
 	int b = 128;
-	int M = b * 4096;  // so we have space for 512kB
+	int M = b * 32;  // so we have space for 512kB
 
 	if (argc<3)
         show_help();
@@ -72,7 +72,7 @@ int main(int argc, char ** argv) {
 	}
 	
 	// init_allocator(basic block size, memory length)
-	// init_allocator(b,M);
+	init_allocator(b,M);
 	ackerman_main();
 
 	// release_allocator()
