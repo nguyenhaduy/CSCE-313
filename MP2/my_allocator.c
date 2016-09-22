@@ -69,22 +69,25 @@ int slipt_block(int i){
   if (i >= NUM_LISTS){
     return 1;
   }
+
+  printf("\nCheck recursive %i\n",i);
   if (FREE_LIST[i] == NULL){
     check_condition = slipt_block(i+1);
   }
 
+
   if ((FREE_LIST[i] != NULL)&&(check_condition == 0)){
-	  Header* Curr_Header = FREE_LIST[i];
+	  Header* Curr_Header = FREE_LIST[i+1];
     uintptr_t temp_addr = (uintptr_t)Curr_Header;
-    temp_addr = temp_addr ^ (int)pow(2, BASIC_BLOCK_SIZE + i -1);
+    temp_addr = temp_addr ^ (int)pow(2, BASIC_BLOCK_SIZE + i);
     Header* New_Header = (Header*)temp_addr;
       New_Header->empty = 1;
-      New_Header->next = FREE_LIST[i-1];
+      New_Header->next = FREE_LIST[i];
       New_Header->prev = Curr_Header;
-      New_Header->size = (MEMORY_LENGTH - HEADER_SIZE);
+      New_Header->size = (BASIC_BLOCK_SIZE + i);
     FREE_LIST[i] = Curr_Header->next;
     Curr_Header->next = New_Header;
-    FREE_LIST[i-1] =  Curr_Header;
+    FREE_LIST[i] =  Curr_Header;
   
    return 0;
   }
@@ -206,9 +209,9 @@ extern Addr my_malloc(unsigned int _length) {
     
   printf("\n\n Memory Allocating: [%d]\n\n",_length);
   
-  int index = log2(_length + HEADER_SIZE)/BASIC_BLOCK_SIZE + 1;
+  int index = log2(_length + HEADER_SIZE)/BASIC_BLOCK_SIZE;
   int i = index;
-  printf("\n BASIC_BLOCK_SIZE = %i \n",BASIC_BLOCK_SIZE);
+  printf("\n BASIC_BLOCK_SIZE = %i \n", BASIC_BLOCK_SIZE);
   printf("\n _length = %i \n",_length);
   printf("\n HEADER_SIZE = %i \n",HEADER_SIZE);
 
@@ -216,18 +219,26 @@ extern Addr my_malloc(unsigned int _length) {
 
   printf("\n index = %i \n",index);
 
-  while ((FREE_LIST[index] = NULL)&&(i >0)) {
+  if ((FREE_LIST[index] == NULL)) {
     slipt_block(i);
-    --i;
+    // ++i;
     printf("\nCheck %i", i);
   }
 
-  printf("\nCheck done");
+  printf("\nCheck done\n");
 
-  Addr my_addr = FREE_LIST[index];//give address to free mem do not include header
+  Header* Curr_Header = FREE_LIST[index];
+  printf("\nCheck done\n");
+  FREE_LIST[index] = Curr_Header->next;
+  printf("\nCheck done\n");
+    Curr_Header->empty = 0;
+    Curr_Header->next = NULL;
+    Curr_Header->prev = NULL;
+
+  Addr my_addr = Curr_Header;//give address to free mem do not include header
 
   //remove_header();
-  // return my_addr;
+  return my_addr;
 
   // if (FREE_LIST[index] != NULL){
 
@@ -316,7 +327,7 @@ extern Addr my_malloc(unsigned int _length) {
   //   exit(EXIT_FAILURE);
   // }
 
-  return malloc((size_t)_length);
+  //return malloc((size_t)_length);
 }
 
 extern int my_free(Addr _a) {
