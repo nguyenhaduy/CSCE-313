@@ -42,7 +42,7 @@
     unsigned int NUM_LISTS;
     Addr START_MEMORY;
     Addr END_MEMORY;
-    const unsigned int HEADER_SIZE = 13;
+    const unsigned int HEADER_SIZE = 32;
     unsigned int MEMORY_LENGTH;
     unsigned int BASIC_BLOCK_SIZE;
     unsigned int BASIC_BASE; // = log2 (BASIC_BLOCK_SIZE)
@@ -64,15 +64,15 @@ void check_block(){
 
 int slipt_block(int i){
   int check_condition;
-  if (i < 1){
+  if (i > NUM_LISTS){
+    printf("\nOut of Memory!!!\n");
     return 1;
   }
   //Recursive
   printf("\nCheck recursive %i\n",i);
-  if ((FREE_LIST[i] == NULL)&&(i > 0)){
+  if ((FREE_LIST[i] == NULL)&&(i < NUM_LISTS)){
     check_condition = slipt_block(i+1);
   }
-
 
   if (FREE_LIST[i] != NULL){
     printf("\nCheck inside\n");
@@ -92,10 +92,12 @@ int slipt_block(int i){
     // printf("\nCurr_Header = %i\n", Curr_Header);
     // printf("\nbuddy = %i\n", buddy);
 
-    int offset = (int)((char*)Curr_Header - (char*)START_MEMORY);
-    int buddy_offset = offset ^ block_size;
+    long offset = (long)((char*)Curr_Header - (char*)START_MEMORY);
+    long buddy_offset = offset ^ block_size;
     char* buddy = (char*)START_MEMORY + buddy_offset;
 
+    printf("\nSTART_MEMORY = %i\n", START_MEMORY);
+    printf("\nEND_MEMORY = %i\n", END_MEMORY);
     printf("\nCurr_Header = %i\n", Curr_Header);
     printf("\nbuddy = %i\n", buddy);
 
@@ -112,6 +114,11 @@ int slipt_block(int i){
     FREE_LIST[i] = Curr_Header->next;
     Curr_Header->next = New_Header;
     FREE_LIST[i-1] =  Curr_Header;
+
+    printf("\nAddress 1 = %i\n",Curr_Header);
+    printf("\nAddress 2 = %i\n",New_Header);
+
+
   
    return 0;
   }
@@ -124,21 +131,52 @@ void merge_block(Addr _a){
 	
   Header* Curr_Header = (Header*) _a;
 
-  int offset = (int)((char*)Curr_Header - (char*)START_MEMORY);
-  int list_location = ((Header*)Curr_Header)->size;
-  unsigned long long block_size = (unsigned long long)pow(2,(log2(BASIC_BLOCK_SIZE))+list_location-1);
+  //Calculate the buddy address base on bit wise xor
+  long offset = (long)((char*)Curr_Header - (char*)START_MEMORY);
+  long list_location = ((Header*)Curr_Header)->size;
+  unsigned long long block_size = (unsigned long long)pow(2,(log2(BASIC_BLOCK_SIZE))+list_location);
   int buddy_offset = offset ^ block_size;
+  printf("\n block_size = %i\n",block_size);
+
+  printf("\n buddy_offset = %i\n",buddy_offset);
+
   char* buddy = (char*)START_MEMORY + buddy_offset;
+  printf("\n buddy = %i\n",buddy);
+
   Header* Buddy_Header = (Header*)buddy;
+  printf("\n Buddy_Header->empty = %i\n",Buddy_Header->next);
 
-  if (Buddy_Header->empty == 1){
-    Header* min_addr;
+  //get the buddy header out of the free list
+  if (Buddy_Header->prev == NULL){
+    FREE_LIST[list_location] = Buddy_Header->next;
+  } else if (Buddy_Header->next == NULL)
+  {
+    Buddy_Header->prev->next = NULL;
+  } else {
+  Buddy_Header->prev->next = Buddy_Header->next;
+  Buddy_Header->next->prev = Buddy_Header->prev;
+  }
+
+  Addr small_addr;
+
+  //determine wich is the smaller address between curr_header and buddy_header
+  if ((Buddy_Header->empty == 1)&&(Buddy_Header->size == Curr_Header->size)){
     if (Buddy_Header < Curr_Header){
-      min_addr = Buddy_Header;
+      small_addr = (Addr)Buddy_Header;
     } else {
-      min_addr = Curr_Header;
+      small_addr = (Addr)Curr_Header;
     }
+  
+  Header* Merged_Header= (Header*)small_addr;
+  //Set the attributes of the small header
+    Merged_Header->empty = 1;
+    Merged_Header->next = FREE_LIST[list_location + 1];
+    Merged_Header->prev = NULL;
+    Merged_Header->size = list_location + 1;
 
+  //put the small header in front of the FREE_LIST
+    FREE_LIST[list_location + 1] = Merged_Header;
+    merge_block(small_addr);
   }
 
 }
@@ -163,7 +201,8 @@ extern unsigned int init_allocator(unsigned int _basic_block_size, unsigned int 
 
   // create the memory
   START_MEMORY = malloc(MEMORY_LENGTH);
-  // END_MEMORY = START_MEMORY - MEMORY_LENGTH;
+  END_MEMORY = START_MEMORY + MEMORY_LENGTH;
+
   
   // create the freelist
   // 1. malloc the first dimension
@@ -209,8 +248,8 @@ extern Addr my_malloc(unsigned int _length) {
   }
   int i = index;
   printf("\n BASIC_BLOCK_SIZE = %i \n", BASIC_BLOCK_SIZE);
-  printf("\n _length = %i \n",_length);
-  printf("\n HEADER_SIZE = %i \n",HEADER_SIZE);
+  printf("\n _length = %i \n", _length);
+  printf("\n HEADER_SIZE = %i \n", HEADER_SIZE);
 
 
 
@@ -232,9 +271,14 @@ extern Addr my_malloc(unsigned int _length) {
     Curr_Header->empty = 0;
     Curr_Header->next = NULL;
     Curr_Header->prev = NULL;
+    Curr_Header->size = index;
 
-  Addr my_addr = (char*)Curr_Header + HEADER_SIZE+1;//give address to free mem do not include header
+  Addr my_addr = (Addr)((char*)Curr_Header + HEADER_SIZE);//give address to free mem do not include header
 
+  printf("\nHeader adress = %i\n", Curr_Header);
+  printf("\nHeader size = %i\n", Curr_Header->size);
+
+  printf("\nMy adress = %i\n", my_addr);
   //remove_header();
   return my_addr;
 
@@ -242,27 +286,36 @@ extern Addr my_malloc(unsigned int _length) {
 
 extern int my_free(Addr _a) {
   /* Same here! */
+  printf("\nFreeing Memory!!!\n");
+  printf("\nAddr = %i\n", _a);
   
-  char* Header_addr = (char*)_a - HEADER_SIZE-1;
-  Header* New_Header = (Header*)Header_addr;
-  int list_location = New_Header->size;
-  printf("\nLocation = %i\n", list_location);
-  printf("\nNext = %i\n", New_Header->next );
+  char* Header_addr = (char*)(_a) - HEADER_SIZE;
+  printf("\nHeader_addr = %i\n", Header_addr);
 
+  Header* New_Header = (Header*)Header_addr;
+  int list_location = (int)New_Header->size;
+  printf("\nLocation = %i\n", New_Header->size);
+  printf("\nEmpty = %i\n", New_Header->empty);
+  printf("\nLPrev = %i\n", New_Header->prev);
+  printf("\nNext = %i\n", New_Header->next);
+  printf("\nSize of Header = %i\n",sizeof(Header));
+
+  //Setting attribute for the new header
       New_Header->empty = 1;
       New_Header->next = FREE_LIST[list_location];
       New_Header->prev = NULL;
       New_Header->size = list_location;
+
+  //Put the new header at the top of the free list
   FREE_LIST[list_location] = New_Header;
 
-  merge_block(_a);
-
+  merge_block(Header_addr);
 }
 
 int release_allocator(){
   /* This function returns any allocated memory to the operating system.
        After this function is called, any allocation fails.
-    */
+  */
   free(START_MEMORY);
   printf("Successfully Deallocated Memory\n");
   return 0;

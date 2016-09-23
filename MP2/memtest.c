@@ -28,7 +28,7 @@ int main(int argc, char ** argv) {
 	// Parse arguments using getopt()
 	int c;
 	int b = 128;
-	int M = b * 32;  // so we have space for 512kB
+	int M = 134217728;  // so we have space for 512kB
 
 	if (argc<3)
         show_help();
