@@ -34,7 +34,7 @@ struct Header {
   bool empty;     // 1 byte
   Header* next;   // 4 bytes
   Header* prev;   // 4 bytes
-  unsigned int size;  // 4 bytes    13 total
+  int size;  // 4 bytes    13 total
 };
 	
 typedef void * Addr; 
