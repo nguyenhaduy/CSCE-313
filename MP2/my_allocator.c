@@ -104,7 +104,7 @@ int slipt_block(int i){
 
     // printf("\nBASIC_BLOCK_SIZE + i-1 = %i\n", log2(BASIC_BLOCK_SIZE) + i);
 
-    unsigned long long block_size = (unsigned long long)pow(2,(log2(BASIC_BLOCK_SIZE))+i);
+    unsigned long long block_size = (unsigned long long)pow(2,(log2(BASIC_BLOCK_SIZE))+i-1);
     printf("\nblock_size = %i\n", block_size);
 
     // char* buddy =(char*)(( (unsigned long long) Curr_Header) ^ block_size);
@@ -112,15 +112,14 @@ int slipt_block(int i){
     // printf("\nbuddy = %i\n", buddy);
 
     unsigned long long offset = (unsigned long long)((char*)Curr_Header - (char*)START_MEMORY);
-    unsigned long long buddy_offset = offset + block_size;
+    unsigned long long buddy_offset = offset ^ block_size;
     char* buddy = (char*)START_MEMORY + buddy_offset;
 
-    printf("\nSTART_MEMORY = %llu\n", START_MEMORY);
-    printf("\nEND_MEMORY = %llu\n", END_MEMORY);
+    // printf("\nSTART_MEMORY = %llu\n", START_MEMORY);
+    // printf("\nEND_MEMORY = %llu\n", END_MEMORY);
     printf("\nCurr_Header = %llu\n", Curr_Header);
     printf("\nbuddy = %llu\n", buddy);
 
-    printf("\nCheck inside2\n");
     printf("\nCurr_Header->next = %llu\n", Curr_Header->next);
 
     FREE_LIST[i] = Curr_Header->next;
@@ -154,7 +153,7 @@ int slipt_block(int i){
     printf("\nAddress 1 = %i\n",Curr_Header);
     printf("\nAddress 2 = %i\n",New_Header);
     printf("\nCurr_Header->next = %llu\n", Curr_Header->next);
-    printList();
+    // printList();
   
    return 0;
   }
@@ -171,24 +170,32 @@ void merge_block(Addr _a){
   long offset = (long)((char*)Curr_Header - (char*)START_MEMORY);
   long list_location = ((Header*)Curr_Header)->size;
   unsigned long long block_size = (unsigned long long)pow(2,(log2(BASIC_BLOCK_SIZE))+list_location);
-  unsigned long long buddy_offset = offset + block_size;
+  unsigned long long buddy_offset = offset ^ block_size;
   printf("\n block_size = %llu\n",block_size);
 
   printf("\n buddy_offset = %llu\n",buddy_offset);
 
   char* buddy = (char*)START_MEMORY + buddy_offset;
-  printf("\n buddy = %i\n",buddy);
+  printf("\n buddy = %llu\n",buddy);
+
 
   Header* Buddy_Header = (Header*)buddy;
+  printf("\n Buddy_Header->prev = %llu\n",Buddy_Header->prev);
   printf("\n Buddy_Header->empty = %i\n",Buddy_Header->empty);
 
-  
+
   
   Addr small_addr;
 
   //determine wich is the smaller address between curr_header and buddy_header
-  if ((Buddy_Header->empty == 1)&&(Buddy_Header->size == Curr_Header->size)){
+    if (Buddy_Header < Curr_Header){
+      small_addr = (Addr)Buddy_Header;
+    } else {
+      small_addr = (Addr)Curr_Header;
+    }
 
+  
+  if ((Buddy_Header->empty == 1)&&(Buddy_Header->size == Curr_Header->size)){
     //get the current header out of the free list
     FREE_LIST[list_location] = Curr_Header->next;
     if(Curr_Header->next != NULL){
@@ -208,12 +215,7 @@ void merge_block(Addr _a){
       } 
     }
 
-    //take the smaller address
-    if (Buddy_Header < Curr_Header){
-      small_addr = (Addr)Buddy_Header;
-    } else {
-      small_addr = (Addr)Curr_Header;
-    }
+    
   
   Header* Merged_Header= (Header*)small_addr;
 
@@ -229,13 +231,13 @@ void merge_block(Addr _a){
   //put the small header in front of the FREE_LIST
     FREE_LIST[list_location + 1] = Merged_Header;
     printf("\n Merging !!!!\n");
-    if (list_location < NUM_LISTS - 1){
+    if (list_location < NUM_LISTS){
       merge_block(small_addr);
     }
     
-    printList();
+    
   }
-
+  printList();
 }
 
 
@@ -317,9 +319,7 @@ extern Addr my_malloc(unsigned int _length) {
     Header* Curr_Header = FREE_LIST[index];
     // printf("\n FREE_LIST[index] = %llu \n",FREE_LIST[index]);
 
-    // printf("\nCheck done 2\n");
     FREE_LIST[index] = Curr_Header->next;
-    // printf("\nCheck done 3\n");
       Curr_Header->empty = 0;
       Curr_Header->next = NULL;
       Curr_Header->prev = NULL;
