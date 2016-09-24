@@ -30,11 +30,11 @@
 
 typedef struct Header Header;
 
-struct Header {
-  bool empty;     // 1 byte
-  Header* next;   // 4 bytes
-  Header* prev;   // 4 bytes
-  int size;  // 4 bytes    13 total
+struct Header { //total size of 32 bytes
+  bool empty;  
+  Header* next;   
+  Header* prev;   
+  int size;  
 };
 	
 typedef void * Addr; 

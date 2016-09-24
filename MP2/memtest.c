@@ -15,11 +15,11 @@
 Default is 512kB.
 */
 void show_help(){
-        std::cout <<"usage is as follows\n"
+        std::cout <<"Wrong syntax, please input command as follows\n"
         	 	  <<"memtest [-b <blocksize>] [-s <memsize>]\n"
         	 	  <<"-b <blocksize> defines the block size, in bytes. Default is 128 bytes.\n"
         	 	  <<"-s <memsize> defines the size of the memory to be allocated, in bytes.\n"
-        	 	  <<"Default is 512kB.\n\n";
+        	 	  <<"Default is 512KB.\n\n";
 }
 
 int main(int argc, char ** argv) {
@@ -28,7 +28,7 @@ int main(int argc, char ** argv) {
 	// Parse arguments using getopt()
 	int c;
 	int b = 128;
-	int M = 134217728;  // so we have space for 512kB
+	int M = 524288;  // so we have space for 512kB
 
 	if (argc<3)
         show_help();
@@ -56,7 +56,7 @@ int main(int argc, char ** argv) {
 	    }
 	    break;
 	    case '?':
-            if (optopt == 'c')
+            if ((optopt == 'b')||(optopt == 's'))
                 fprintf (stderr, "Option -%c requires an argument.\n", optopt);
             else if (isprint (optopt)){
                 fprintf (stderr, "Unknown option `-%c'.\n", optopt);
@@ -73,6 +73,7 @@ int main(int argc, char ** argv) {
 	
 	// init_allocator(basic block size, memory length)
 	init_allocator(b,M);
+
 	ackerman_main();
 
 	// release_allocator()

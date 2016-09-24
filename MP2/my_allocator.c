@@ -2,6 +2,7 @@
     File: my_allocator.c
 
     Author: Duy Nguyen
+            NealPatel
             Department of Computer Science
             Texas A&M University
     Date  : Sep 13th 2016
@@ -33,7 +34,7 @@
 /* DATA STRUCTURES */
 /*--------------------------------------------------------------------------*/
 
-    Header** FREE_LIST;
+    Header** FREE_LIST; //Array of Header pointer
 
 /*--------------------------------------------------------------------------*/
 /* CONSTANTS */
@@ -41,7 +42,6 @@
 
     unsigned int NUM_LISTS;
     Addr START_MEMORY;
-    Addr END_MEMORY;
     const unsigned int HEADER_SIZE = 32;
     unsigned int MEMORY_LENGTH;
     unsigned int BASIC_BLOCK_SIZE;
@@ -66,8 +66,8 @@ void printList() {
     // Traverse through each free list
     Curr_Header = FREE_LIST[i];
     int count = 0;
-    // If header isn't null, then traverse the linked list to get
-    // number of empty blocks
+
+    // If header isn't null, then traverse the linked list to get number of empty blocks
     if(Curr_Header != NULL) {
       temp = Curr_Header;
       while(temp != NULL) {
@@ -75,9 +75,9 @@ void printList() {
         temp = temp->next;
       }
     }
-    printf("FREE_LIST[%i] ", i);
+    printf("FREE_LIST[%i] \t", i);
     int block_size = pow(2, i) * 128;
-    printf("blocksize: %i, free blocks: %i\n", block_size, count);
+    printf("blocksize: %i bytes, number of free blocks: %i\n", block_size, count);
   }
 }
 
@@ -87,48 +87,27 @@ int slipt_block(int i){
     printf("\nOut of Memory!!!\n");
     return 1;
   }
-  //Recursive
-  printf("\nCheck recursive %i\n",i);
+
+  //Recursive slipting the blocks if there is no free block in the memory
   if ((FREE_LIST[i] == NULL)&&(i < NUM_LISTS)){
     check_condition = slipt_block(i+1);
   }
 
+  //Error handling, do not splipt if the free list is empty, non empty block
   if (FREE_LIST[i] != NULL){
-    printf("\nCheck inside\n");
 	  Header* Curr_Header = FREE_LIST[i];
-    // uintptr_t temp_addr = (uintptr_t)Curr_Header;
-    // printf("\ntemp_addr = %i\n", temp_addr);
 
-    // temp_addr = temp_addr ^ (int)pow(2, i -1 + 2);
-    // printf("\ntemp_addr = %i\n", temp_addr);
-
-    // printf("\nBASIC_BLOCK_SIZE + i-1 = %i\n", log2(BASIC_BLOCK_SIZE) + i);
-
-    unsigned long long block_size = (unsigned long long)pow(2,(log2(BASIC_BLOCK_SIZE))+i-1);
-    printf("\nblock_size = %i\n", block_size);
-
-    // char* buddy =(char*)(( (unsigned long long) Curr_Header) ^ block_size);
-    // printf("\nCurr_Header = %i\n", Curr_Header);
-    // printf("\nbuddy = %i\n", buddy);
-
+    //Calculate the buddy address base on bit wise xor
+	  unsigned long long block_size = (unsigned long long)pow(2,(log2(BASIC_BLOCK_SIZE))+i-1);
     unsigned long long offset = (unsigned long long)((char*)Curr_Header - (char*)START_MEMORY);
     unsigned long long buddy_offset = offset ^ block_size;
     char* buddy = (char*)START_MEMORY + buddy_offset;
 
-    // printf("\nSTART_MEMORY = %llu\n", START_MEMORY);
-    // printf("\nEND_MEMORY = %llu\n", END_MEMORY);
-    printf("\nCurr_Header = %llu\n", Curr_Header);
-    printf("\nbuddy = %llu\n", buddy);
-
-    printf("\nCurr_Header->next = %llu\n", Curr_Header->next);
-
+    //Take the current block out of the memory list
     FREE_LIST[i] = Curr_Header->next;
     if (Curr_Header->next != NULL){
       Curr_Header->next->prev = NULL;
     } 
-
-  printf("\nFREE_LIST[%i] = %llu\n", i, FREE_LIST[i]);
-
 
     //Making the new header at the buddy address and set the attributes
     Header* New_Header = (Header*)buddy;
@@ -137,29 +116,24 @@ int slipt_block(int i){
       New_Header->prev = Curr_Header;
       New_Header->size = i-1;
 
+    //Put the new block in the freelist
     if(FREE_LIST[i-1] != NULL){
       FREE_LIST[i-1]->prev = New_Header;
     }
-    //Put the new block in the freelist
-    printf("\n size = %i\n", New_Header->size);
     
-       
+    //Set the attribute for current header
     Curr_Header->empty = 1;
     Curr_Header->next = New_Header;
     Curr_Header->prev = NULL;
     Curr_Header->size = i-1;
     FREE_LIST[i-1] =  Curr_Header;
-
-    printf("\nAddress 1 = %i\n",Curr_Header);
-    printf("\nAddress 2 = %i\n",New_Header);
-    printf("\nCurr_Header->next = %llu\n", Curr_Header->next);
-    // printList();
   
    return 0;
   }
   else{
     return 1;
   }
+  // printList();
 }
 
 void merge_block(Addr _a){
@@ -167,34 +141,14 @@ void merge_block(Addr _a){
   Header* Curr_Header = (Header*) _a;
 
   //Calculate the buddy address base on bit wise xor
-  long offset = (long)((char*)Curr_Header - (char*)START_MEMORY);
-  long list_location = ((Header*)Curr_Header)->size;
-  unsigned long long block_size = (unsigned long long)pow(2,(log2(BASIC_BLOCK_SIZE))+list_location);
+  unsigned long long offset = (long)((char*)Curr_Header - (char*)START_MEMORY);
+  int list_location = ((Header*)Curr_Header)->size;
+  unsigned long long block_size = (unsigned long long)pow(2,(log2(BASIC_BLOCK_SIZE)) +list_location);
   unsigned long long buddy_offset = offset ^ block_size;
-  printf("\n block_size = %llu\n",block_size);
-
-  printf("\n buddy_offset = %llu\n",buddy_offset);
-
   char* buddy = (char*)START_MEMORY + buddy_offset;
-  printf("\n buddy = %llu\n",buddy);
-
-
   Header* Buddy_Header = (Header*)buddy;
-  printf("\n Buddy_Header->prev = %llu\n",Buddy_Header->prev);
-  printf("\n Buddy_Header->empty = %i\n",Buddy_Header->empty);
 
-
-  
-  Addr small_addr;
-
-  //determine wich is the smaller address between curr_header and buddy_header
-    if (Buddy_Header < Curr_Header){
-      small_addr = (Addr)Buddy_Header;
-    } else {
-      small_addr = (Addr)Curr_Header;
-    }
-
-  
+  //Only merge if the buddy is empty and the same size with the current block
   if ((Buddy_Header->empty == 1)&&(Buddy_Header->size == Curr_Header->size)){
     //get the current header out of the free list
     FREE_LIST[list_location] = Curr_Header->next;
@@ -215,56 +169,61 @@ void merge_block(Addr _a){
       } 
     }
 
-    
-  
-  Header* Merged_Header= (Header*)small_addr;
+    //determine wich is the smaller address between curr_header and buddy_header
+    Addr small_addr;
+    if (Buddy_Header < Curr_Header){
+      small_addr = (Addr)Buddy_Header;
+    } else {
+      small_addr = (Addr)Curr_Header;
+    }
 
-  if (FREE_LIST[list_location+1] != NULL){
-    FREE_LIST[list_location+1]->prev = Merged_Header;
-  }
-  //Set the attributes of the small header
-    Merged_Header->empty = 1;
-    Merged_Header->next = FREE_LIST[list_location + 1];
-    Merged_Header->prev = NULL;
-    Merged_Header->size = list_location + 1;
+    //Creating the Merged_Header and put it in front of the free list
+    Header* Merged_Header= (Header*)small_addr;
 
-  //put the small header in front of the FREE_LIST
+    if (FREE_LIST[list_location+1] != NULL){
+      FREE_LIST[list_location+1]->prev = Merged_Header;
+    }
+
+    //Set the attributes of the small header
+      Merged_Header->empty = 1;
+      Merged_Header->next = FREE_LIST[list_location + 1];
+      Merged_Header->prev = NULL;
+      Merged_Header->size = list_location + 1;
+
+    //put the small header in front of the FREE_LIST
     FREE_LIST[list_location + 1] = Merged_Header;
-    printf("\n Merging !!!!\n");
+    // printf("\nMerging !!!!\n");
+
+    //Recursive call merge block
     if (list_location < NUM_LISTS){
       merge_block(small_addr);
-    }
-    
-    
+    }  
   }
-  printList();
+
+  // printList();
 }
 
 
 /* Don't forget to implement "init_allocator" and "release_allocator"! */
 
 extern unsigned int init_allocator(unsigned int _basic_block_size, unsigned int _length){ 
-  // determine sizes to be used
+  
+  //Setting up the global variables
   MEMORY_LENGTH = _length;
   BASIC_BLOCK_SIZE = _basic_block_size;
   BASIC_BASE = (int) log2(BASIC_BLOCK_SIZE);
   NUM_LISTS = log2(MEMORY_LENGTH / BASIC_BLOCK_SIZE) + 1;
-  printf ("\nNUM_LISTS = %i\n", NUM_LISTS);
 
   // create the memory
   START_MEMORY = malloc(MEMORY_LENGTH);
-  END_MEMORY = START_MEMORY + MEMORY_LENGTH;
 
-  
-  // create the freelist
-  // 1. malloc the first dimension
+  // malloc the array of freelist
   FREE_LIST = (Header**)malloc(NUM_LISTS * sizeof(Header*));
   
-  // // 3. set FREE_LIST entries to NULL
+  // set FREE_LIST entries to NULL
   for (int i = 0; i < NUM_LISTS; ++i){
     FREE_LIST[i] = NULL; //start node
   }
-  // printf("check2\n");
   
   // create the first Header
   Header* temp_header = (Header*)START_MEMORY;
@@ -285,98 +244,72 @@ extern unsigned int init_allocator(unsigned int _basic_block_size, unsigned int 
 }
 
 extern Addr my_malloc(unsigned int _length) {
-  /* This preliminary implementation simply hands the call over the
-     the C standard library!
-     Of course this needs to be replaced by your implementation.
+  /* This function return an address of a empty memory block to use.
+     Call the slipt_block function incase there is no free block.
   */
     
-  printf("\n\n Memory Allocating: [%d]\n\n",_length);
-  ++count;
+  printf("\n\nMemory Allocating: [%d bytes]\n\n",_length);
+  
+  // ++count;
+  // printf ("\n count = %i\n", count);
 
-  printf ("\n count = %i\n", count);
+  //Calculate the minimum size of block that can fit the data and which free list it belongs to
   int index;
   if ( _length + HEADER_SIZE < BASIC_BLOCK_SIZE){
     index = 0;
   } else {
     index = log2((_length + HEADER_SIZE)/BASIC_BLOCK_SIZE) + 2;
   }
-  // // int i = index;
-  // printf("\n BASIC_BLOCK_SIZE = %i \n", BASIC_BLOCK_SIZE);
-  // printf("\n _length = %i \n", _length);
-  // printf("\n HEADER_SIZE = %i \n", HEADER_SIZE);
 
-
+  //If there no free block in the free list, call slipt_block() to make one
   if ((FREE_LIST[index] == NULL)) {
     slipt_block(index+1);
-    // ++i;
-    // printf("\nCheck %i", i);
   }
 
-  // printf("\nCheck done 1\n");
-
+  //If there still are free memory block
   if(FREE_LIST[index] != NULL){
-    // printf("\n index = %i \n",index);
     Header* Curr_Header = FREE_LIST[index];
-    // printf("\n FREE_LIST[index] = %llu \n",FREE_LIST[index]);
-
     FREE_LIST[index] = Curr_Header->next;
       Curr_Header->empty = 0;
       Curr_Header->next = NULL;
       Curr_Header->prev = NULL;
       Curr_Header->size = index;
 
-    Addr my_addr = (Addr)((char*)Curr_Header + HEADER_SIZE);//give address to free mem do not include header
-
-    // printf("\nHeader adress = %llu\n", Curr_Header);
-    // printf("\nHeader size = %llu\n", Curr_Header->size);
-
-    // printf("\nMy adress = %llu\n", my_addr);
-    //remove_header();
-    printList();
-    return my_addr;
+  Addr my_addr = (Addr)((char*)Curr_Header + HEADER_SIZE);//allocated address does not include header
+  return my_addr;
   } else {
-    printf("\nOut of Memory!!!\n");
+    printf("\nOut of Memory!!!\n"); //Error handling in case there is no more free memory block
+    return 0;
   }
 
+  //printList();
 }
 
 extern int my_free(Addr _a) {
-  /* Same here! */
-  printf("\nFreeing Memory!!!\n");
-  printf("\nAddr = %llu\n", _a);
-  
-  char* Header_addr = (char*)(_a) - HEADER_SIZE;
-  // printf("\nHeader_addr = %llu\n", Header_addr);
+  /* This function return the allocated block to the freelist.
+     Call the merge_block function to merge the blocks
+  */
 
+  printf("\nFreeing Memory From %llu!!!\n", _a);
+
+  //Get Header address from the parameter
+  char* Header_addr = (char*)(_a) - HEADER_SIZE;
   Header* New_Header = (Header*)Header_addr;
   int list_location = (int)New_Header->size;
-  // printf("\nLocation = %i\n", New_Header->size);
-  // printf("\nEmpty = %i\n", New_Header->empty);
-  // printf("\nPrev = %llu\n", New_Header->prev);
-  // printf("\nNext = %llu\n", New_Header->next);
-  // printf("\nSize of Header = %i\n",sizeof(Header));
-
-  printf("\nFREE_LIST[list_location] = %llu\n", FREE_LIST[list_location]);
 
   //Setting attribute for the new header
-      New_Header->empty = 1;
-      New_Header->next = FREE_LIST[list_location];
-      New_Header->prev = NULL;
-      New_Header->size = list_location;
+    New_Header->empty = 1;
+    New_Header->next = FREE_LIST[list_location];
+    New_Header->prev = NULL;
+    New_Header->size = list_location;
 
-      // if (New_Header->next != NULL){
-      //   New_Header->next->prev = New_Header->prev;
-      // }
-    // printf("\nSTART_MEMORY = %llu\n", START_MEMORY);
-    // printf("\nEND_MEMORY = %llu\n", END_MEMORY);
   //Put the new header at the top of the free list
   FREE_LIST[list_location] = New_Header;
-  printList();
 
+  //Call merge_block
   merge_block(Header_addr);
 
-  printList();
-  
+  //printList();
 }
 
 int release_allocator(){
