@@ -1,4 +1,7 @@
 #!/bin/bash
+# READ!!
+# Cannot use the ps command (just figured this out) need to parse files in /proc and /proc/[pid]
+# Can use these ps commands to check your values
 echo "`ps -p $$ -o pid,ppid,euid,egid,ruid,rgid,fsuid,fsgid`"
 # Identifiers
 echo "=== Identifiers ==="
