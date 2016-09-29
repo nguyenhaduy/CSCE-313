@@ -10,7 +10,7 @@ echo "RUID    RGID"
 echo "`ps -p $$ -o ruid=`"" `ps -p $$ -o rgid=`"
 echo "FSUID   FSGID"
 echo "`ps -p $$ -o fsuid=`"" `ps -p $$ -o fsgid=`"
-
+echo "=== State ==="
 # State
 STAT="`ps -p $$ -o state=`"
 case "$STAT" in
