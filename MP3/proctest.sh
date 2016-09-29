@@ -33,3 +33,12 @@ esac
 echo "Current state of the `ps -p $$ -o command=` command is `ps -p $$ -o state=` ($STAT)"
 
 # Thread Information
+echo "=== Thread Information ==="
+echo ""
+# Priority
+echo "=== Priority ==="
+echo "Priority Number:`ps -p $$ -o pri=`"
+echo "Nice value:`ps -p $$ -o ni=`"
+echo ""
+# Time Information
+echo "=== Time Information ==="
