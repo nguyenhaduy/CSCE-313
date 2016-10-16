@@ -31,12 +31,92 @@ int command_pipe[2];
  * So if 'command' returns a file descriptor, the next 'command' has this
  * descriptor as its 'input'.
  */
+
+/*
+  Function Declarations for builtin shell commands:
+ */
+int command_cd(char **args);
+int command_help(char **args);
+int command_exit(char **args);
+
+/*
+  List of builtin commands, followed by their corresponding functions.
+ */
+char *builtin_str[] = {
+  "cd",
+  "help",
+  "exit"
+};
+
+int (*builtin_func[]) (char **) = {
+  &command_cd,
+  &command_help,
+  &command_exit
+};
+
+int num_builtins() {
+  return sizeof(builtin_str) / sizeof(char *);
+}
+
+/*
+  Builtin function implementations.
+*/
+
+/**
+   @brief Bultin command: change directory.
+   @param args List of args.  args[0] is "cd".  args[1] is the directory.
+   @return Always returns 1, to continue executing.
+ */
+int command_cd(char **args)
+{
+  if (args[1] == NULL) {
+    fprintf(stderr, "Error: Expected argument to \"cd\"\n");
+  } else {
+    if (chdir(args[1]) != 0) {
+      perror("Wrong directory");
+    }
+  }
+  return 1;
+}
+
+/**
+   @brief Builtin command: print help.
+   @param args List of args.  Not examined.
+   @return Always returns 1, to continue executing.
+ */
+int command_help(char **args)
+{
+  int i;
+  printf("Stephen Brennan's LSH\n");
+  printf("Type program names and arguments, and hit enter.\n");
+  printf("The following are built in:\n");
+
+  for (i = 0; i < num_builtins(); i++) {
+    printf("  %s\n", builtin_str[i]);
+  }
+
+  printf("Use the man command for information on other programs.\n");
+  return 1;
+}
+
+/**
+   @brief Builtin command: exit.
+   @param args List of args.  Not examined.
+   @return Always returns 0, to terminate execution.
+ */
+int command_exit(char **args)
+{
+  return 0;
+}
+
+#define RL_BUFSIZE 1024
+
 static int command(int input, int first, int last)
 {
-  int pipettes[2];
+  int pipefd[2];
  
   /* Invoke pipe */
-  pipe( pipettes ); 
+  pipe( pipefd ); 
   pid = fork();
  
   /*
@@ -47,11 +127,11 @@ static int command(int input, int first, int last)
   if (pid == 0) {
     if (first == 1 && last == 0 && input == 0) {
       // First command
-      dup2( pipettes[WRITE], STDOUT_FILENO );
+      dup2( pipefd[WRITE], STDOUT_FILENO );
     } else if (first == 0 && last == 0 && input != 0) {
       // Middle command
       dup2(input, STDIN_FILENO);
-      dup2(pipettes[WRITE], STDOUT_FILENO);
+      dup2(pipefd[WRITE], STDOUT_FILENO);
     } else {
       // Last command
       dup2( input, STDIN_FILENO );
@@ -65,13 +145,13 @@ static int command(int input, int first, int last)
     close(input);
  
   // Nothing more needs to be written
-  close(pipettes[WRITE]);
+  close(pipefd[WRITE]);
  
   // If it's the last command, nothing more needs to be read
   if (last == 1)
-    close(pipettes[READ]);
+    close(pipefd[READ]);
  
-  return pipettes[READ];
+  return pipefd[READ];
 }
  
 /* Final cleanup, 'wait' for processes to terminate.
@@ -153,34 +233,26 @@ static void split(char* cmd)
   //use strtok to tokenize the input line
   token = strtok(cmd, " \n\t\r\a\"");
   while (token != NULL) {
-    printf( " %s\n", token );
+    // printf( " %s\n", token );
     if (token[0] == '\'' || token[0] == '\"')
     {
-      // char* temp ='';
-      // printf("check 1\n");
-      // char* check = token + 1;
-      // printf("check 2\n");
+      char sign = token[0];
       char* temp = (char*)malloc(strlen(cmd));
-      temp = token + 1;
-      printf( "temp = %s\n", temp );
-      // int i = ;
-      // while (check[0] != '\'' || check[0] != '\"') {
+      for (int i = 0; i < (sizeof(token)-1); ++i){
+        char* copy = token +1;
+        strcpy(temp, "\"");
+        strcat(temp, copy);
 
-      //   printf("check 3\n");
-      //   *temp = *temp + check;
-      //   // printf("%s \n",check);
-      //    printf("check %d\n",i);
-      //   check = token[i];
-      //   i++;
-      // }
-      // char* temp2 = " ";
+        // *(temp + i) = *(token + i + 1);
+      }
+
       strcat(temp, " ");
       token = strtok(NULL, "\"\'");
       
       strcat(temp, token);
+      strcat(temp, "\"");
       printf( "temp = %s\n", temp );
 
-      // *temp = *temp + *token;
       tokens[position] = temp;
       position++;
     }
