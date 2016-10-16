@@ -106,6 +106,7 @@ int command_help(char **args)
  */
 int command_exit(char **args)
 {
+  exit(0);
   return 0;
 }
 
@@ -207,13 +208,18 @@ static void split(char* cmd);
 static int run(char* cmd, int input, int first, int last)
 {
   split(cmd);
-  if (args[0] != NULL) {
-    if (strcmp(args[0], "exit") == 0) 
-      exit(0);
-    n += 1;
-    return command(input, first, last);
+  if (args[0] == NULL) {
+    // An empty command was entered.
+    return 1;
   }
-  return 0;
+
+  for (int i = 0; i < num_builtins(); i++) {
+    if (strcmp(args[0], builtin_str[i]) == 0) {
+      return (*builtin_func[i])(args);
+    }
+  }
+
+  return command(input, first, last);;
 }
  
 #define TOK_BUFSIZE 64
