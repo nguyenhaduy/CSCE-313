@@ -87,14 +87,9 @@ int command_cd(char **args)
 int command_help(char **args)
 {
   int i;
-<<<<<<< HEAD
   printf("Basic shell program!\n");
   printf("To run a program, type program names following with arguments, and press enter.\n");
   printf("These following commands are built in:\n");
-=======
-  printf("Type program names and arguments, and hit enter.\n");
-  printf("The following are built in:\n");
->>>>>>> 484e9f5e466e05c6ee1962201e1493238ac08ce3
 
   for (i = 0; i < num_builtins(); i++) {
     printf("  %s\n", builtin_str[i]);
