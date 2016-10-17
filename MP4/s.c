@@ -9,10 +9,11 @@
 #include <sys/types.h>
 #include <sys/wait.h>
  
-/* The array below will hold the arguments: args[0] is the command. */
 static char** args;
 pid_t pid;
 int command_pipe[2];
+char* previousDirectory;
+char* currentDirectory;
  
 #define READ  0
 #define WRITE 1
@@ -63,9 +64,7 @@ int num_builtins() {
 */
 
 /**
-   @brief Bultin command: change directory.
-   @param args List of args.  args[0] is "cd".  args[1] is the directory.
-   @return Always returns 1, to continue executing.
+    Bultin command: change directory.
  */
 int command_cd(char **args)
 {
@@ -73,36 +72,33 @@ int command_cd(char **args)
     fprintf(stderr, "Error: Expected argument to \"cd\"\n");
   } else {
     if (chdir(args[1]) != 0) {
-      perror("Wrong directory");
+      perror("Wrong directory!!!!");
     }
+    // else {
+    //   strcpy(previousDirectory, currentDirectory);
+    // }
   }
   return 1;
 }
 
 /**
-   @brief Builtin command: print help.
-   @param args List of args.  Not examined.
-   @return Always returns 1, to continue executing.
+    Builtin command: print help.
  */
 int command_help(char **args)
 {
   int i;
-  printf("Stephen Brennan's LSH\n");
-  printf("Type program names and arguments, and hit enter.\n");
-  printf("The following are built in:\n");
+  printf("Basic shell program!\n");
+  printf("To run a program, type program names following with arguments, and press enter.\n");
+  printf("These following commands are built in:\n");
 
   for (i = 0; i < num_builtins(); i++) {
     printf("  %s\n", builtin_str[i]);
   }
-
-  printf("Use the man command for information on other programs.\n");
   return 1;
 }
 
 /**
-   @brief Builtin command: exit.
-   @param args List of args.  Not examined.
-   @return Always returns 0, to terminate execution.
+    Builtin command: exit.
  */
 int command_exit(char **args)
 {
@@ -116,14 +112,10 @@ static int command(int input, int first, int last)
 {
   int pipefd[2];
  
-  /* Invoke pipe */
+  /* define pipe */
   pipe( pipefd ); 
   pid = fork();
  
-  /*
-   SCHEME:
-    STDIN --> O --> O --> O --> STDOUT
-  */
  
   if (pid == 0) {
     if (first == 1 && last == 0 && input == 0) {
@@ -139,20 +131,24 @@ static int command(int input, int first, int last)
     }
  
     if (execvp( args[0], args) == -1)
-      _exit(EXIT_FAILURE); // If child fails
+      perror("Execvp Error!!!"); // If child fails
+  } else if (pid < 0) {
+    // Error forking
+    perror("Fork Error!!!");
+  } else {
+ 
+    if (input != 0) 
+      close(input);
+   
+    // Nothing more needs to be written
+    close(pipefd[WRITE]);
+   
+    // If it's the last command, nothing more needs to be read
+    if (last == 1)
+      close(pipefd[READ]);
+   
+    return pipefd[READ];
   }
- 
-  if (input != 0) 
-    close(input);
- 
-  // Nothing more needs to be written
-  close(pipefd[WRITE]);
- 
-  // If it's the last command, nothing more needs to be read
-  if (last == 1)
-    close(pipefd[READ]);
- 
-  return pipefd[READ];
 }
  
 /* Final cleanup, 'wait' for processes to terminate.
@@ -167,14 +163,15 @@ static void cleanup(int n)
  
 static int run(char* cmd, int input, int first, int last);
 static char line[1024];
-static int n = 0; /* number of calls to 'command' */
+static int n = 0; // position of command in the pipeline
  
 int main()
 {
-  printf("SIMPLE SHELL: Type 'exit' or send EOF to exit.\n");
+  printf("SIMPLE SHELL: Type 'exit' to exit.\n");
+  // getcwd(previousDirectory, 1024);
   while (1) {
     /* Print the command prompt */
-    printf("$> ");
+    printf("%s :&> ",getcwd(currentDirectory, 1024));
     fflush(NULL);
  
     /* Read a command line */
@@ -185,15 +182,15 @@ int main()
     int first = 1;
  
     char* cmd = line;
-    char* next = strchr(cmd, '|'); /* Find first '|' */
+    char* position = strchr(cmd, '|'); /* Look for the position of the first '|' */
  
-    while (next != NULL) {
-      /* 'next' points to '|' */
-      *next = '\0';
+    while (position != NULL) {
+      /* 'position' points to '|' */
+      *position = '\0';
       input = run(cmd, input, first, 0);
  
-      cmd = next + 1;
-      next = strchr(cmd, '|'); /* Find next '|' */
+      cmd = position + 1;
+      position = strchr(cmd, '|'); /* Find position '|' */
       first = 0;
     }
     input = run(cmd, input, first, 1);
