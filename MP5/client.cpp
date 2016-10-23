@@ -79,12 +79,19 @@ struct PARAMS {
      */
     string name;
     string data;
-    int n, m, w;
+    int n, w;
     pthread_t tid;
     pthread_mutex_t* mut;
-    RequestChannel *workerChannel;
-    buffer *request_buffer;
-    vector<int>* count;
+    RequestChannel* workerChannel;
+    buffer* request_buffer;
+    vector<int> count;
+
+    PARAMS(const string patient_name, const int n, const int w, buffer buff)
+    :name(name), n(n), w(w), request_buffer(&buff){
+        pthread_mutex_init(&mut, NULL); 
+        vector<int> temp (10,0);
+        count = temp;
+    }
 
 
 };
@@ -254,6 +261,9 @@ int main(int argc, char * argv[]) {
          */
         // std::list<std::string> request_buffer;
         buffer request_buffer;
+        PARAMS john ("John Smith", n, w, request_buffer);
+        PARAMS jane ("Jane Smith", n, w, request_buffer);
+        PARAMS joe ("Joe Smith", n, w, request_buffer);
         std::vector<int> john_frequency_count(10, 0);
         std::vector<int> jane_frequency_count(10, 0);
         std::vector<int> joe_frequency_count(10, 0);
