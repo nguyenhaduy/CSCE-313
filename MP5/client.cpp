@@ -78,23 +78,45 @@ struct PARAMS {
         to synchronization objects.
      */
     string name;
-    string data;
     int n, w;
     pthread_t tid;
     pthread_mutex_t* param_mutex;
-    RequestChannel* workerChannel;
     buffer* request_buffer;
     vector<int> count;
 
-    PARAMS(const string patient_name, const int n, const int w, buffer *buff, pthread_mutex_t* mut)
-    :name(patient_name), n(n), w(w), request_buffer(buff), param_mutex(mut){
-        // pthread_mutex_init(&mut, NULL); 
+    PARAMS(const string patient_name, const int _n, const int _w, buffer *buff, pthread_mutex_t* mut)
+    :name(patient_name), n(_n), w(_w), request_buffer(buff), param_mutex(mut){
         std::cout << "Creating PARAMS for " << patient_name << std::endl;
         vector<int> temp (10,0);
         count = temp;
     }
+};
 
+struct WORKERS {
+    /*
+        This is a helpful struct to have,
+        but you can implement the program
+        some other way it you'd like.
+    
+        For example, it can hold pointers to
+        the containers that hold the histogram information
+        so that all the threads combine their data
+        instead of assembling "w" different histograms,
+        as well as pointers to RequestChannels and
+        to synchronization objects.
+     */
+    int n, w;
+    pthread_t tid;
+    pthread_mutex_t* worker_mutex;
+    buffer* request_buffer;
+    vector<PARAMS>* param;
+    RequestChannel *workerChannel;
 
+    WORKERS(const int _n, const int _w, buffer *buff, pthread_mutex_t* mut, vector<PARAMS>* p, RequestChannel *chan)
+    :n(_n), w(_w), request_buffer(buff), worker_mutex(mut), param(p){
+        std::string s = chan->send_request("newthread");
+        workerChannel = new RequestChannel(s, RequestChannel::CLIENT_SIDE);
+    }
 };
 
 /*
@@ -165,31 +187,38 @@ void* worker_thread_function(void* arg) {
         RequestChannel you construct regardless of
         whether you used "new" for it.
      */
+
+    WORKERS *worker = (WORKERS*)arg;
     
-    PARAMS p = *(PARAMS*)arg;
+    vector<PARAMS> *param = worker->param;
+    
     while(true) {
-        // std::string request = request_buffer.front();
-        //     request_buffer.pop_front();
-        //     std::string response = workerChannel->send_request(request);
-            
-        //     if(request == "data John Smith") {
-        //         john_frequency_count.at(stoi(response) / 10) += 1;
-        //     }
-        //     else if(request == "data Jane Smith") {
-        //         jane_frequency_count.at(stoi(response) / 10) += 1;
-        //     }
-        //     else if(request == "data Joe Smith") {
-        //         joe_frequency_count.at(stoi(response) / 10) += 1;
-        //     }
-        //     else if(request == "quit") {
-        //         delete workerChannel;
-        //         break;
-        //     }
+        std::string request = worker->request_buffer->pop();
+        std::string response = worker->workerChannel->send_request(request);
+        if(request == "data John Smith") {
+                pthread_mutex_lock(worker->worker_mutex);
+                (*param)[0].count.at(stoi(response) / 10) += 1;
+                pthread_mutex_unlock(worker->worker_mutex);
+            }
+            else if(request == "data Jane Smith") {
+                pthread_mutex_lock(worker->worker_mutex);
+                (*param)[1].count.at(stoi(response) / 10) += 1;
+                pthread_mutex_unlock(worker->worker_mutex);
+            }
+            else if(request == "data Joe Smith") {
+                pthread_mutex_lock(worker->worker_mutex);
+                (*param)[2].count.at(stoi(response) / 10) += 1;
+                pthread_mutex_unlock(worker->worker_mutex);
+            }
+            else if (request == "quit"){
+                delete worker->workerChannel;
+                break;
+            }        
     }
 }
 
 void* request_thread_function(void *para){
-    fflush(NULL);
+    fflush(NULL);   
     PARAMS *patient = (PARAMS*) para;
     string data = "data ";
     data = data + patient->name;
@@ -244,6 +273,8 @@ int main(int argc, char * argv[]) {
         struct timeval finish_time;
         int64_t start_usecs;
         int64_t finish_usecs;
+
+        gettimeofday(&start_time, NULL);
         
         std::cout << "n == " << n << std::endl;
         std::cout << "w == " << w << std::endl;
@@ -267,9 +298,11 @@ int main(int argc, char * argv[]) {
 
         buffer request_buffer;
         std::cout << "Creating PARAMS." << std::endl;
-        PARAMS john ("John Smith", n, w, &request_buffer, &client_mutex);
-        PARAMS jane ("Jane Smith", n, w, &request_buffer, &client_mutex);
-        PARAMS joe ("Joe Smith", n, w, &request_buffer, &client_mutex);
+        vector <PARAMS> param;
+        param.push_back(PARAMS ("John Smith", n, w, &request_buffer, &client_mutex));
+        param.push_back(PARAMS ("Jane Smith", n, w, &request_buffer, &client_mutex));
+        param.push_back(PARAMS ("Joe Smith", n, w, &request_buffer, &client_mutex));
+
         std::cout << "Finished creating PARAMS." << std::endl;
         std::vector<int> john_frequency_count(10, 0);
         std::vector<int> jane_frequency_count(10, 0);
@@ -290,22 +323,26 @@ int main(int argc, char * argv[]) {
         std::cout << "Populating request buffer... ";
         fflush(NULL);
         
-        if(pthread_create(&john.tid, NULL, request_thread_function, &john)) {
-        fprintf(stderr, "Error creating thread for john\n");
-        return 1;
+        for (int i =0; i < 3; ++i){
+            if(pthread_create(&param[i].tid, NULL, request_thread_function, &param[i])) {
+                fprintf(stderr, "Error creating request thread!!!\n");
+                return 1;
+            }
         }
-        if(pthread_create(&jane.tid, NULL, request_thread_function, &jane)) {
-        fprintf(stderr, "Error creating thread for jane\n");
-        return 1;
-        }
-        if(pthread_create(&joe.tid, NULL, request_thread_function, &joe)) {
-        fprintf(stderr, "Error creating thread for joe\n");
-        return 1;
-        }
+
         
-        pthread_join(john.tid, NULL);
-        pthread_join(jane.tid, NULL);
-        pthread_join(joe.tid, NULL);
+        // if(pthread_create(&param[1].tid, NULL, request_thread_function, &param[1])) {
+        // fprintf(stderr, "Error creating thread for jane\n");
+        // return 1;
+        // }
+        // if(pthread_create(&param[2].tid, NULL, request_thread_function, &param[2])) {
+        // fprintf(stderr, "Error creating thread for joe\n");
+        // return 1;
+        // }
+        
+        for (int i =0; i < 3; ++i){
+            pthread_join(param[i].tid, NULL);
+        }
 
         // for(int i = 0; i < n; ++i) {
         //     request_buffer.push("data John Smith");
@@ -341,28 +378,63 @@ int main(int argc, char * argv[]) {
     sequentially using a single loop.
 */
 /*--------------------------------------------------------------------------*/
-        std::string s = chan->send_request("newthread");
-        RequestChannel *workerChannel = new RequestChannel(s, RequestChannel::CLIENT_SIDE);
-        
-        while(true) {
-            std::string request = request_buffer.pop();
-            // request_buffer.pop_front();
-            std::string response = workerChannel->send_request(request);
-            
-            if(request == "data John Smith") {
-                john_frequency_count.at(stoi(response) / 10) += 1;
-            }
-            else if(request == "data Jane Smith") {
-                jane_frequency_count.at(stoi(response) / 10) += 1;
-            }
-            else if(request == "data Joe Smith") {
-                joe_frequency_count.at(stoi(response) / 10) += 1;
-            }
-            else if(request == "quit") {
-                delete workerChannel;
-                break;
+
+        vector<WORKERS> worker;
+
+        std::cout << "Creating woker chanel... ";
+        for (int i = 0; i < w; ++i){
+            pthread_mutex_lock(&client_mutex);
+            worker.push_back( WORKERS(n, w, &request_buffer, &client_mutex, &param, chan));
+            pthread_mutex_unlock(&client_mutex);
+        }
+        std::cout << "done." << std::endl;
+
+        std::cout << "Creating worker thread... ";
+        for (int i =0; i < w; ++i){
+            if(pthread_create(&worker[i].tid, NULL, worker_thread_function, &worker[i])) {
+                fprintf(stderr, "Error creating worker thread!!!\n");
+                return 1;
             }
         }
+        std::cout << "done." << std::endl;
+
+        std::cout << "Waiting for server response...";
+        for (int i =0; i < w; ++i){
+            pthread_join(worker[i].tid, NULL);
+        }
+        std::cout << "done." << std::endl;
+
+        // std::cout << "Deleting worker channels...";
+        // for (int i =0; i < w; ++i){
+        //     delete worker[i].workerChannel;
+        // }
+        // std::cout << "done." << std::endl;
+
+
+
+        // std::string s = chan->send_request("newthread");
+        // RequestChannel *workerChannel = new RequestChannel(s, RequestChannel::CLIENT_SIDE);
+
+        
+        // while(true) {
+        //     std::string request = request_buffer.pop();
+        //     // request_buffer.pop_front();
+        //     std::string response = workerChannel->send_request(request);
+            
+        //     if(request == "data John Smith") {
+        //         param[0].count.at(stoi(response) / 10) += 1;
+        //     }
+        //     else if(request == "data Jane Smith") {
+        //         param[1].count.at(stoi(response) / 10) += 1;
+        //     }
+        //     else if(request == "data Joe Smith") {
+        //         param[2].count.at(stoi(response) / 10) += 1;
+        //     }
+        //     else if(request == "quit") {
+        //         delete workerChannel;
+        //         break;
+        //     }
+        // }
 /*--------------------------------------------------------------------------*/
 /*  END CRITICAL SECTION    */
 /*--------------------------------------------------------------------------*/
@@ -389,17 +461,20 @@ int main(int argc, char * argv[]) {
         finish_usecs = (finish_time.tv_sec * 1e6) + finish_time.tv_usec;
         std::cout << "Finished!" << std::endl;
         
-        std::string john_results = make_histogram("John Smith", &john_frequency_count);
-        std::string jane_results = make_histogram("Jane Smith Smith", &jane_frequency_count);
-        std::string joe_results = make_histogram("Joe Smith", &joe_frequency_count);
+        std::string john_results = make_histogram("John Smith", &param[0].count);
+        std::string jane_results = make_histogram("Jane Smith", &param[1].count);
+        std::string joe_results = make_histogram("Joe Smith", &param[2].count);
+
+        gettimeofday(&finish_time, NULL);
         
         std::cout << "Results for n == " << n << ", w == " << w << std::endl;
-        std::cout << "Time to completion: " << std::to_string(finish_usecs - start_usecs) << " usecs" << std::endl;
-        std::cout << "John Smith total: " << accumulate(john_frequency_count.begin(), john_frequency_count.end(), 0) << std::endl;
+        long long total_time = (finish_time.tv_sec - start_time.tv_sec)*1000000 + finish_time.tv_usec - start_time.tv_usec;
+        std::cout << "Time to completion: " << std::to_string(total_time) << " usecs" << std::endl;
+        std::cout << "John Smith total: " << accumulate(param[0].count.begin(), param[0].count.end(), 0) << std::endl;
         std::cout << john_results << std::endl;
-        std::cout << "Jane Smith total: " << accumulate(jane_frequency_count.begin(), jane_frequency_count.end(), 0) << std::endl;
+        std::cout << "Jane Smith total: " << accumulate(param[1].count.begin(), param[1].count.end(), 0) << std::endl;
         std::cout << jane_results << std::endl;
-        std::cout << "Joe Smith total: " << accumulate(joe_frequency_count.begin(), joe_frequency_count.end(), 0) << std::endl;
+        std::cout << "Joe Smith total: " << accumulate(param[2].count.begin(), param[2].count.end(), 0) << std::endl;
         std::cout << joe_results << std::endl;
         
         std::cout << "Sleeping..." << std::endl;
@@ -413,6 +488,7 @@ int main(int argc, char * argv[]) {
          */
         std::string finale = chan->send_request("quit");
         delete chan;
+        pthread_mutex_destroy(&client_mutex);
         std::cout << "Finale: " << finale << std::endl; //However, this line is optional.
     }
     else if(pid != 0) execl("dataserver", NULL);
