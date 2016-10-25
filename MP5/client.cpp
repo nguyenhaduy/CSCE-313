@@ -81,13 +81,13 @@ struct PARAMS {
     string data;
     int n, w;
     pthread_t tid;
-    pthread_mutex_t* mut;
+    pthread_mutex_t* param_mutex;
     RequestChannel* workerChannel;
     buffer* request_buffer;
     vector<int> count;
 
-    PARAMS(const string patient_name, const int n, const int w, buffer buff)
-    :name(name), n(n), w(w), request_buffer(&buff){
+    PARAMS(const string patient_name, const int n, const int w, buffer buff, pthread_mutex_t mut)
+    :name(name), n(n), w(w), request_buffer(&buff), param_mutex(&mut){
         pthread_mutex_init(&mut, NULL); 
         vector<int> temp (10,0);
         count = temp;
@@ -187,13 +187,14 @@ void* worker_thread_function(void* arg) {
     }
 }
 
-void request_thread_function(PARAMS *patient, buffer* request_buffer){
+void* request_thread_function(void *para){
     fflush(NULL);
+    PARAMS *patient = (PARAMS*) para;
     string data = "data ";
     data = data + patient->name;
 
     for(int i = 0; i < patient->n; ++i) {
-        request_buffer->push(data);
+        patient->request_buffer->push(data);
     }
     fflush(NULL);
 }
@@ -259,14 +260,17 @@ int main(int argc, char * argv[]) {
             global scope, but you could also pass
             pointers to them to your thread functions.
          */
+        pthread_mutex_t client_mutex;
+        // pthread_mutex_init (&client_mutex, NULL);
         // std::list<std::string> request_buffer;
         buffer request_buffer;
-        PARAMS john ("John Smith", n, w, request_buffer);
-        PARAMS jane ("Jane Smith", n, w, request_buffer);
-        PARAMS joe ("Joe Smith", n, w, request_buffer);
+        PARAMS john ("John Smith", n, w, request_buffer, client_mutex);
+        PARAMS jane ("Jane Smith", n, w, request_buffer, client_mutex);
+        PARAMS joe ("Joe Smith", n, w, request_buffer, client_mutex);
         std::vector<int> john_frequency_count(10, 0);
         std::vector<int> jane_frequency_count(10, 0);
         std::vector<int> joe_frequency_count(10, 0);
+        std::cout << "Finished creating PARAMS." << std::endl;
         
         /*-------------------------------------------*/
         /* START TIMER HERE */
@@ -282,11 +286,30 @@ int main(int argc, char * argv[]) {
         
         std::cout << "Populating request buffer... ";
         fflush(NULL);
-        for(int i = 0; i < n; ++i) {
-            request_buffer.push("data John Smith");
-            request_buffer.push("data Jane Smith");
-            request_buffer.push("data Joe Smith");
+        
+        if(pthread_create(&john.tid, NULL, request_thread_function, &john)) {
+        fprintf(stderr, "Error creating thread for john\n");
+        return 1;
         }
+        if(pthread_create(&jane.tid, NULL, request_thread_function, &jane)) {
+        fprintf(stderr, "Error creating thread for jane\n");
+        return 1;
+        }
+        if(pthread_create(&joe.tid, NULL, request_thread_function, &joe)) {
+        fprintf(stderr, "Error creating thread for joe\n");
+        return 1;
+        }
+        
+        pthread_join(john.tid, NULL);
+        pthread_join(jane.tid, NULL);
+        pthread_join(joe.tid, NULL);
+
+        // for(int i = 0; i < n; ++i) {
+        //     request_buffer.push("data John Smith");
+        //     request_buffer.push("data Jane Smith");
+        //     request_buffer.push("data Joe Smith");
+        // }
+
         std::cout << "done." << std::endl;
         
         std::cout << "Pushing quit requests... ";
