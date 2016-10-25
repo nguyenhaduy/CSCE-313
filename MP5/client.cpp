@@ -86,9 +86,10 @@ struct PARAMS {
     buffer* request_buffer;
     vector<int> count;
 
-    PARAMS(const string patient_name, const int n, const int w, buffer buff, pthread_mutex_t mut)
-    :name(name), n(n), w(w), request_buffer(&buff), param_mutex(&mut){
-        pthread_mutex_init(&mut, NULL); 
+    PARAMS(const string patient_name, const int n, const int w, buffer *buff, pthread_mutex_t* mut)
+    :name(patient_name), n(n), w(w), request_buffer(buff), param_mutex(mut){
+        // pthread_mutex_init(&mut, NULL); 
+        std::cout << "Creating PARAMS for " << patient_name << std::endl;
         vector<int> temp (10,0);
         count = temp;
     }
@@ -261,16 +262,18 @@ int main(int argc, char * argv[]) {
             pointers to them to your thread functions.
          */
         pthread_mutex_t client_mutex;
-        // pthread_mutex_init (&client_mutex, NULL);
+        pthread_mutex_init (&client_mutex, NULL);
         // std::list<std::string> request_buffer;
+
         buffer request_buffer;
-        PARAMS john ("John Smith", n, w, request_buffer, client_mutex);
-        PARAMS jane ("Jane Smith", n, w, request_buffer, client_mutex);
-        PARAMS joe ("Joe Smith", n, w, request_buffer, client_mutex);
+        std::cout << "Creating PARAMS." << std::endl;
+        PARAMS john ("John Smith", n, w, &request_buffer, &client_mutex);
+        PARAMS jane ("Jane Smith", n, w, &request_buffer, &client_mutex);
+        PARAMS joe ("Joe Smith", n, w, &request_buffer, &client_mutex);
+        std::cout << "Finished creating PARAMS." << std::endl;
         std::vector<int> john_frequency_count(10, 0);
         std::vector<int> jane_frequency_count(10, 0);
         std::vector<int> joe_frequency_count(10, 0);
-        std::cout << "Finished creating PARAMS." << std::endl;
         
         /*-------------------------------------------*/
         /* START TIMER HERE */
