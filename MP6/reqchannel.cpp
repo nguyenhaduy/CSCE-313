@@ -78,7 +78,7 @@ char * RequestChannel::pipe_name(Mode _mode) {
 
 void RequestChannel::open_write_pipe(char * _pipe_name) {
 
-    cout << "mkfifo write pipe [" << _pipe_name << "]\n" << flush;
+    // cout << "mkfifo write pipe [" << _pipe_name << "]\n" << flush;
 
   if (mkfifo(_pipe_name, 0600) < 0) {
     if (errno != EEXIST) {
@@ -87,7 +87,7 @@ void RequestChannel::open_write_pipe(char * _pipe_name) {
     }
   }
 
-   cout << "open write pipe [" << _pipe_name << "]\n" << flush;
+   // cout << "open write pipe [" << _pipe_name << "]\n" << flush;
 
   wfd = open(_pipe_name, O_WRONLY);
   if (wfd < 0) {
@@ -95,13 +95,13 @@ void RequestChannel::open_write_pipe(char * _pipe_name) {
     exit(1);
   }
 
-    cout << "done opening write pipe [" << _pipe_name << "]\n" << flush;
+    // cout << "done opening write pipe [" << _pipe_name << "]\n" << flush;
 
 }
 
 void RequestChannel::open_read_pipe(char * _pipe_name) {
 
-    cout << "mkfifo read pipe [" << _pipe_name << "]\n" << flush;
+    // cout << "mkfifo read pipe [" << _pipe_name << "]\n" << flush;
 
   if (mkfifo(_pipe_name, 0600) < 0) {
     if (errno != EEXIST) {
@@ -110,7 +110,7 @@ void RequestChannel::open_read_pipe(char * _pipe_name) {
     }
   }
 
-    cout << "open read pipe [" << _pipe_name << "]\n" << flush;
+    // cout << "open read pipe [" << _pipe_name << "]\n" << flush;
 
   rfd = open(_pipe_name, O_RDONLY);
   if (rfd < 0) {
@@ -118,7 +118,7 @@ void RequestChannel::open_read_pipe(char * _pipe_name) {
     exit(1);
   }
 
-    cout << "done opening read pipe [" << _pipe_name << "]\n" << flush;
+    // cout << "done opening read pipe [" << _pipe_name << "]\n" << flush;
 
 }
 
