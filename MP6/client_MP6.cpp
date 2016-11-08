@@ -66,21 +66,11 @@
     but they might help.
  */
 
-// struct Response{
-//     string serverResponse;      //data server response
-//     int requestID;          //client request
-//     int count;              //request number
-//     Response(string s, int r, int c) { serverResponse = s; requestID = r; count=c;}
-// };
-
 class Semaphore {
 private:
     int value;
     pthread_mutex_t m;
     pthread_cond_t c;
-
-    // void lock() { pthread_mutex_lock(&m); }
-    // void unlock() {pthread_mutex_unlock(&m); }
 
 public:
 
@@ -133,35 +123,29 @@ template <typename T> class BoundedBuffer{
 
     int size;
     Semaphore * lock, * full, * empty;
-    // pthread_mutex_t buffer_lock;
-    // std::list<std::string> request_buffer;
     queue<T> buffer;
 
 
 public:
+
 	BoundedBuffer(){
-		// size = 100;
-  //       lock = new Semaphore(1);
-  //       full = new Semaphore(0);
-  //       empty = new Semaphore(size);
 	}
+
     BoundedBuffer(int _size) {
         size = _size;
         lock = new Semaphore(1);
         full = new Semaphore(0);
         empty = new Semaphore(size);
-        // pthread_mutex_init(&buffer_lock, NULL); 
     }
+
     void push(T data){
         empty->P();
         lock->P();
         buffer.push(data);
         lock->V();
         full->V();
-        // pthread_mutex_lock(&buffer_lock);
-        // request_buffer.push_back(data);
-        // pthread_mutex_unlock(&buffer_lock);
     }
+
     T pop(){
         full->P();
         lock->P();
@@ -172,12 +156,6 @@ public:
         lock->V();
         empty->V();
         return output;
-
-        // pthread_mutex_lock(&buffer_lock);
-        // std::string request = request_buffer.front();
-        // request_buffer.pop_front();
-        // pthread_mutex_unlock(&buffer_lock);
-        // return request;
     } 
 };
 
@@ -268,7 +246,7 @@ std::string make_histogram(std::string name, std::vector<int> *data) {
     You'll need to fill these in.
 */
 void* request_thread_function(void* arg) {
-    // fflush(NULL);   
+
     request_thread_params *patient = (request_thread_params*) arg;
     string data = "data ";
     data = data + patient->name;
@@ -276,7 +254,6 @@ void* request_thread_function(void* arg) {
     for(int i = 0; i < patient->n; ++i) {
         patient->request_buffer->push(data);
     }
-    // fflush(NULL);
 }
 
 void* worker_thread_function(void* arg) {
@@ -289,21 +266,12 @@ void* worker_thread_function(void* arg) {
         std::string request = worker->request_buffer->pop();
         std::string response = worker->workerChannel->send_request(request);
         if(request == "data John Smith") {
-                // pthread_mutex_lock(worker->worker_mutex);
-                // (*request_threads)[0].count.at(stoi(response) / 10) += 1;
-                // pthread_mutex_unlock(worker->worker_mutex);
                 (*request_threads)[0].response_buffer.push(stoi(response));
             }
             else if(request == "data Jane Smith") {
-                // pthread_mutex_lock(worker->worker_mutex);
-                // (*request_threads)[1].count.at(stoi(response) / 10) += 1;                
-                // pthread_mutex_unlock(worker->worker_mutex);
                 (*request_threads)[1].response_buffer.push(stoi(response));
             }
             else if(request == "data Joe Smith") {
-                // pthread_mutex_lock(worker->worker_mutex);
-                // (*request_threads)[2].count.at(stoi(response) / 10) += 1;
-                // pthread_mutex_unlock(worker->worker_mutex);
                 (*request_threads)[2].response_buffer.push(stoi(response));
                 
             }
@@ -466,14 +434,6 @@ int main(int argc, char * argv[]) {
         for (int i =0; i < request_threads.size(); ++i){
             pthread_join(request_threads[i].tid, NULL);
         }
-
-  //       request_thread_params quit_thread ("quit", w, w, b, &request_buffer, &client_mutex);
-  //       if(pthread_create(&quit_thread.tid, NULL, request_thread_function, &quit_thread)) {
-  //           fprintf(stderr, "Error creating quit thread!!!\n");
-		// 	return 1;
-		// }
-
-		// pthread_join(quit_thread.tid, NULL);
 
         std::cout << "Pushing quit requests... ";
         // fflush(NULL);

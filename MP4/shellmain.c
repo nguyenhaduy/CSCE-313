@@ -182,15 +182,26 @@ int main()
     int first = 1;
  
     char* cmd = line;
-    char* position = strchr(cmd, '|'); /* Look for the position of the first '|' */
+    char* position_pipe = strchr(cmd, '|'); /* Look for the position of the first '|' */
  
-    while (position != NULL) {
+    while (position_pipe != NULL) {
       /* 'position' points to '|' */
-      *position = '\0';
+      *position_pipe = '\0';
       input = run(cmd, input, first, 0);
  
-      cmd = position + 1;
-      position = strchr(cmd, '|'); /* Find position '|' */
+      cmd = position_pipe + 1;
+      position_pipe = strchr(cmd, '|'); /* Find position '|' */
+      first = 0;
+    }
+
+    char* position_redir = strchr(cmd, '>'); /* Look for the position of the first '|' */
+    while (position_redir != NULL) {
+      /* 'position' points to '|' */
+      *position_redir = '\0';
+      input = run(cmd, input, first, 0);
+ 
+      cmd = position_pipe + 1;
+      position_pipe = strchr(cmd, '|'); /* Find position '|' */
       first = 0;
     }
     input = run(cmd, input, first, 1);

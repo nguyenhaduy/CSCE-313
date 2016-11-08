@@ -307,6 +307,8 @@ int main(int argc, char * argv[]) {
         std::vector<int> john_frequency_count(10, 0);
         std::vector<int> jane_frequency_count(10, 0);
         std::vector<int> joe_frequency_count(10, 0);
+
+        
         
         /*-------------------------------------------*/
         /* START TIMER HERE */
