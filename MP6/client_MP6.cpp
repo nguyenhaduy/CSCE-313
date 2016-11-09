@@ -49,6 +49,8 @@
 #include <vector>
 #include <queue>
 #include "reqchannel.h"
+#include "semaphore.h"
+#include "BoundedBuffer.h"
 
 /*
     This next file will need to be written from scratch, along with
@@ -65,99 +67,6 @@
     All *_params structs are optional,
     but they might help.
  */
-
-class Semaphore {
-private:
-    int value;
-    pthread_mutex_t m;
-    pthread_cond_t c;
-
-public:
-
-    Semaphore(int _val){
-        value = _val;
-        pthread_cond_init(&c, NULL);
-        pthread_mutex_init(&m, NULL);
-    }
-
-    ~Semaphore(){
-        pthread_mutex_destroy(&m);
-        pthread_cond_destroy(&c);
-    }
-
-    int P(){
-
-        int err_code;
-        if (err_code = pthread_mutex_lock(&m) != 0)
-            return err_code;
-        while (value <=0) {
-            if (err_code = pthread_cond_wait(&c, &m) != 0)
-                return err_code;
-        }
-        --value;
-        if (err_code = pthread_mutex_unlock(&m) != 0)
-            return err_code;
-
-        return 0;
-    }
-
-    int V(){
-
-        int err_code;
-        if (err_code = pthread_mutex_lock(&m) != 0)
-            return err_code;
-        ++value;
-        if (err_code = pthread_cond_broadcast(&c) != 0)
-                return err_code;
-
-
-        if (err_code = pthread_mutex_unlock(&m) != 0)
-            return err_code;
-
-        return 0;
-    }
-
-};
-
-template <typename T> class BoundedBuffer{
-
-    int size;
-    Semaphore * lock, * full, * empty;
-    queue<T> buffer;
-
-
-public:
-
-	BoundedBuffer(){
-	}
-
-    BoundedBuffer(int _size) {
-        size = _size;
-        lock = new Semaphore(1);
-        full = new Semaphore(0);
-        empty = new Semaphore(size);
-    }
-
-    void push(T data){
-        empty->P();
-        lock->P();
-        buffer.push(data);
-        lock->V();
-        full->V();
-    }
-
-    T pop(){
-        full->P();
-        lock->P();
-
-        T output = buffer.front();
-        buffer.pop();
-
-        lock->V();
-        empty->V();
-        return output;
-    } 
-};
 
 struct request_thread_params {
     std::string name;
