@@ -185,8 +185,12 @@ void* event_handler_thread_function(void* arg) {
     int rcount = 0;
     struct timeval timeout = {0,10};    //waiting time
     string request;
+    int temp = worker->w;
+    
+    if (3*worker->n < worker->w)
+    	temp = 3*worker->n;
 
-    for(int i = 0; i < worker->w; ++i) {
+    for(int i = 0; i < temp; ++i) {
         // Create new RequestChannel
         NetworkChannels[i] = new NetworkRequestChannel(worker->host, worker->port);
 
@@ -211,7 +215,7 @@ void* event_handler_thread_function(void* arg) {
     	FD_ZERO(&readset);
 
         // Get the max fd
-        for(int i=0; i < worker->w; ++i){
+        for(int i=0; i < temp; ++i){
             if(NetworkChannels[i]->get_fd() > max) 
             	max = NetworkChannels[i]->get_fd();
             FD_SET(NetworkChannels[i]->get_fd(), &readset);
@@ -220,7 +224,7 @@ void* event_handler_thread_function(void* arg) {
     	selectResult = select(max + 1, &readset, NULL, NULL, &timeout);
 
     	if(selectResult){
-            for(int i = 0; i < worker->w; ++i){
+            for(int i = 0; i < temp; ++i){
 
                 // Read from socket
                 if(FD_ISSET(NetworkChannels[i]->get_fd(), &readset)){
@@ -261,7 +265,7 @@ void* event_handler_thread_function(void* arg) {
     }
     
     // Close request channels
-    for(int i = 0; i < worker->w; ++i)
+    for(int i = 0; i < temp; ++i)
         NetworkChannels[i]->send_request("quit");
 }
 
