@@ -148,7 +148,7 @@ NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port, void * 
 			
 			if (errno == EINTR) continue;
 			else {
-				cout << "Accept failure!";
+				cout << "Failure acceptant!!!";
 				exit(-1);
 			}
 		}	
@@ -156,7 +156,7 @@ NetworkRequestChannel::NetworkRequestChannel(const unsigned short _port, void * 
 		pthread_create(&thread, &attr, connection_handler, (void*)slave_socket);		
  
 	}
-	cout << "Connection established";
+	cout << "Establishing Connection Success.";
 }
 
 // Destructor
@@ -170,7 +170,7 @@ string NetworkRequestChannel::cread() {
 	char buf[MAX_MESSAGE];
 	
 	if (read(fd, buf, MAX_MESSAGE) < 0) {
-		perror("Can't read");
+		perror("Can't read message from socket!!!");
 		exit(-1);
 	}	
 	
@@ -183,14 +183,14 @@ string NetworkRequestChannel::cread() {
      to the channel. */
 int NetworkRequestChannel::cwrite(string _msg) {
 	if (_msg.length() >= MAX_MESSAGE) {
-		cout << "Message exceeded MAX_MESSAGE";
+		cout << "Message is longer than maximum limit!!!";
 		return -1;
 	}
 	
 	const char * s = _msg.c_str();
 
 	if (write(fd, s, strlen(s)+1) < 0) {
-		perror("Can't write.");
+		perror("Can't write message to socket!!!");
 		exit(-1);
 	}
 }

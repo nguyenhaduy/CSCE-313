@@ -219,7 +219,7 @@ int main(int argc, char * argv[]) {
                 if(atoi(optarg) == 2) USE_ALTERNATE_FILE_OUTPUT = true;
                 break;
             case 'p':
-                // PORT = atoi(optarg);
+                PORT = atoi(optarg);
                 break;
             case 'h':
                 HOST = optarg;

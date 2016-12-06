@@ -151,20 +151,18 @@ void * connection_handler(void * arg)
 
 int main(int argc, char * argv[]) {
 
-  unsigned short PORT = 11987; 
+  int PORT = 11987; 
   int BACKLOG_BUF = 200;  
   
   int c; 
-  unsigned short _port = PORT;
-  int _backlog = BACKLOG_BUF;
   
   while ((c = getopt(argc, argv, "p:b:")) != -1) {
     switch(c){
       case 'p':
-        _port = atoi(optarg);
+        PORT = atoi(optarg);
         break;
       case 'b':
-        _backlog = atoi(optarg);
+        BACKLOG_BUF = atoi(optarg);
         break;
       default:
         std::cout << "This program can be invoked with the following flags:" << std::endl;
@@ -175,9 +173,9 @@ int main(int argc, char * argv[]) {
     }
   }
   
-  cout << "port: " << _port << "\t buffer: " << _backlog << endl; 
+  cout << "Port: " << PORT << "\nBacklog buffer: " << BACKLOG_BUF << endl; 
 
-  NetworkRequestChannel server (_port, connection_handler, _backlog);
+  NetworkRequestChannel server (PORT, connection_handler, BACKLOG_BUF);
 
   cout << "Server closing..." << endl;
   server.~NetworkRequestChannel();
