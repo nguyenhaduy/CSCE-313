@@ -71,7 +71,7 @@ struct request_thread_params {
 
 struct worker_thread_params {
     int n, w;
-    unsigned short port;
+    int port;
     string host;
     pthread_t tid;
     pthread_mutex_t* worker_mutex;
@@ -296,7 +296,7 @@ int main(int argc, char * argv[]) {
     string HOST = "localhost";  // default host name
     bool USE_ALTERNATE_FILE_OUTPUT = false;
     int opt = 0;
-    while ((opt = getopt(argc, argv, "n:b:w:m:h:p")) != -1) {
+    while ((opt = getopt(argc, argv, "n:b:w:m:h:p:")) != -1) {
         switch (opt) {
             case 'n':
                 n = atoi(optarg);
@@ -348,6 +348,7 @@ int main(int argc, char * argv[]) {
     std::cout << "n == " << n << std::endl;
     std::cout << "b == " << b << std::endl;
     std::cout << "w == " << w << std::endl;
+    std::cout << "p == " << PORT << std::endl;
         
     std::cout << "CLIENT STARTED:" << std::endl;
 
